@@ -1,0 +1,49 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "AuthServiceApplication",
+            "request": "launch",
+            "mainClass": "com.fyp.auth.AuthServiceApplication",
+            "projectName": "auth-service"
+        },
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "SupervisionServiceApplication",
+            "request": "launch",
+            "mainClass": "com.fyp.supervision.SupervisionServiceApplication",
+            "projectName": "supervision-service"
+        },
+        {
+            "type": "java",
+            "name": "NotificationServiceApplication",
+            "request": "launch",
+            "mainClass": "com.fyp.notification.NotificationServiceApplication",
+            "projectName": "notification-service"
+        },
+        {
+            "type": "java",
+            "name": "ReportingServiceApplication",
+            "request": "launch",
+            "mainClass": "com.fyp.reporting.ReportingServiceApplication",
+            "projectName": "reporting-service"
+        },
+        {
+            "type": "java",
+            "name": "IntegrationServiceApplication",
+            "request": "launch",
+            "mainClass": "com.fyp.integration.IntegrationServiceApplication",
+            "projectName": "integration-service"
+        }
+    ]
+}
