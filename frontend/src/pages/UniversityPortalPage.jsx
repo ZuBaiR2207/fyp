@@ -8,6 +8,7 @@ const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? 'http://localhost:8081'
 
 const NAV = [
   { id: 'dashboard', label: 'Overview', icon: 'layout' },
+  { id: 'theses', label: 'Theses', icon: 'book' },
   { id: 'sessions', label: 'Sessions', icon: 'calendar' },
   { id: 'feedback', label: 'Feedback', icon: 'message' },
   { id: 'users', label: 'Users', icon: 'users' },
@@ -16,6 +17,36 @@ const NAV = [
   { id: 'integrations', label: 'Integrations', icon: 'search' },
   { id: 'feed', label: 'Live status', icon: 'activity' },
 ]
+
+const THESIS_STATUS_COLORS = {
+  TOPIC_PROPOSED: '#94a3b8',
+  TOPIC_APPROVED: '#60a5fa',
+  PROPOSAL_SUBMITTED: '#a78bfa',
+  PROPOSAL_UNDER_REVIEW: '#f59e0b',
+  PROPOSAL_REVISION_REQUIRED: '#f97316',
+  PROPOSAL_APPROVED: '#22c55e',
+  LITERATURE_REVIEW: '#8b5cf6',
+  METHODOLOGY: '#06b6d4',
+  DATA_COLLECTION: '#14b8a6',
+  DATA_ANALYSIS: '#10b981',
+  WRITING: '#3b82f6',
+  DRAFT_SUBMITTED: '#6366f1',
+  DRAFT_UNDER_REVIEW: '#f59e0b',
+  REVISION_IN_PROGRESS: '#f97316',
+  FINAL_SUBMITTED: '#8b5cf6',
+  DEFENSE_SCHEDULED: '#ec4899',
+  COMPLETED: '#22c55e',
+  FAILED: '#ef4444',
+}
+
+const MILESTONE_STATUS_COLORS = {
+  NOT_STARTED: '#9ca3af',
+  IN_PROGRESS: '#3b82f6',
+  SUBMITTED: '#f59e0b',
+  UNDER_REVIEW: '#a855f7',
+  REVISION_REQUIRED: '#f97316',
+  APPROVED: '#22c55e',
+}
 
 export default function UniversityPortalPage() {
   const { token, logout, role } = useAuth()
@@ -94,6 +125,31 @@ export default function UniversityPortalPage() {
   const [libraryResults, setLibraryResults] = useState([])
   const [libraryIsbn, setLibraryIsbn] = useState('')
   const [librarySearchMode, setLibrarySearchMode] = useState('keyword')
+
+  // Thesis management state
+  const [theses, setTheses] = useState([])
+  const [thesesLoading, setThesesLoading] = useState(false)
+  const [selectedThesis, setSelectedThesis] = useState(null)
+  const [thesisMilestones, setThesisMilestones] = useState([])
+  const [thesisSubmissions, setThesisSubmissions] = useState([])
+  const [thesisFilter, setThesisFilter] = useState({ status: '', studentUsername: '' })
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false)
+  const [milestoneForm, setMilestoneForm] = useState({
+    name: '',
+    description: '',
+    dueDate: '',
+    weightPercentage: 10,
+  })
+  const [feedbackingMilestone, setFeedbackingMilestone] = useState(null)
+  const [milestoneFeedback, setMilestoneFeedback] = useState('')
+  const [submissionReviewModal, setSubmissionReviewModal] = useState(null)
+  const [submissionReview, setSubmissionReview] = useState({ comments: '', approved: false })
+  const [scheduleDefenseModal, setScheduleDefenseModal] = useState(false)
+  const [defenseForm, setDefenseForm] = useState({
+    scheduledAt: '',
+    venue: '',
+    examiners: '',
+  })
 
   function handleProfilePhotoChange(e) {
     const file = e.target.files?.[0]
@@ -425,12 +481,197 @@ export default function UniversityPortalPage() {
     }
   }
 
+  // ===================== THESIS MANAGEMENT FUNCTIONS =====================
+
+  async function fetchTheses() {
+    setThesesLoading(true)
+    try {
+      const url = new URL(`${SUPERVISION_URL}/api/theses`)
+      if (thesisFilter.status) url.searchParams.set('status', thesisFilter.status)
+      if (thesisFilter.studentUsername) url.searchParams.set('studentUsername', thesisFilter.studentUsername)
+      // For supervisors, only show their supervised theses
+      if (role === 'SUPERVISOR' && username) {
+        url.searchParams.set('supervisorUsername', username)
+      }
+      const res = await apiFetch(url.toString(), auth)
+      setTheses(Array.isArray(res) ? res : [])
+    } catch (e) {
+      console.error(e)
+      setTheses([])
+    } finally {
+      setThesesLoading(false)
+    }
+  }
+
+  async function fetchThesisDetails(thesisId) {
+    try {
+      const thesis = await apiFetch(`${SUPERVISION_URL}/api/theses/${thesisId}`, auth)
+      setSelectedThesis(thesis)
+      // Fetch milestones and submissions
+      const [milestones, submissions] = await Promise.all([
+        apiFetch(`${SUPERVISION_URL}/api/theses/${thesisId}/milestones`, auth),
+        apiFetch(`${SUPERVISION_URL}/api/theses/${thesisId}/submissions`, auth),
+      ])
+      setThesisMilestones(Array.isArray(milestones) ? milestones : [])
+      setThesisSubmissions(Array.isArray(submissions) ? submissions : [])
+    } catch (e) {
+      console.error(e)
+      alert('Failed to load thesis details: ' + e.message)
+    }
+  }
+
+  async function updateThesisStatus(thesisId, status) {
+    try {
+      const updated = await apiFetch(`${SUPERVISION_URL}/api/theses/${thesisId}`, auth, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      })
+      setSelectedThesis(updated)
+      fetchTheses()
+    } catch (e) {
+      console.error(e)
+      alert('Failed to update thesis status: ' + e.message)
+    }
+  }
+
+  async function assignSupervisor(thesisId, supervisorUsername) {
+    try {
+      const updated = await apiFetch(`${SUPERVISION_URL}/api/theses/${thesisId}/assign-supervisor?supervisorUsername=${supervisorUsername}`, auth, {
+        method: 'POST',
+      })
+      setSelectedThesis(updated)
+      fetchTheses()
+    } catch (e) {
+      console.error(e)
+      alert('Failed to assign supervisor: ' + e.message)
+    }
+  }
+
+  async function createMilestone() {
+    if (!selectedThesis?.id || !milestoneForm.name.trim()) {
+      alert('Please enter a milestone name')
+      return
+    }
+    try {
+      await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/milestones`, auth, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: milestoneForm.name,
+          description: milestoneForm.description,
+          dueDate: milestoneForm.dueDate || null,
+          weightPercentage: milestoneForm.weightPercentage,
+          orderIndex: thesisMilestones.length,
+        }),
+      })
+      setShowMilestoneModal(false)
+      setMilestoneForm({ name: '', description: '', dueDate: '', weightPercentage: 10 })
+      const milestones = await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/milestones`, auth)
+      setThesisMilestones(Array.isArray(milestones) ? milestones : [])
+    } catch (e) {
+      console.error(e)
+      alert('Failed to create milestone: ' + e.message)
+    }
+  }
+
+  async function updateMilestoneStatus(milestoneId, status) {
+    if (!selectedThesis?.id) return
+    try {
+      await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/milestones/${milestoneId}`, auth, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      })
+      const milestones = await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/milestones`, auth)
+      setThesisMilestones(Array.isArray(milestones) ? milestones : [])
+    } catch (e) {
+      console.error(e)
+      alert('Failed to update milestone: ' + e.message)
+    }
+  }
+
+  async function submitMilestoneFeedback() {
+    if (!selectedThesis?.id || !feedbackingMilestone?.id || !milestoneFeedback.trim()) {
+      alert('Please enter feedback')
+      return
+    }
+    try {
+      await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/milestones/${feedbackingMilestone.id}/feedback`, auth, {
+        method: 'POST',
+        body: JSON.stringify({ feedback: milestoneFeedback }),
+      })
+      setFeedbackingMilestone(null)
+      setMilestoneFeedback('')
+      const milestones = await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/milestones`, auth)
+      setThesisMilestones(Array.isArray(milestones) ? milestones : [])
+    } catch (e) {
+      console.error(e)
+      alert('Failed to submit feedback: ' + e.message)
+    }
+  }
+
+  async function reviewSubmission() {
+    if (!selectedThesis?.id || !submissionReviewModal?.id) return
+    try {
+      await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/submissions/${submissionReviewModal.id}/review`, auth, {
+        method: 'POST',
+        body: JSON.stringify({
+          comments: submissionReview.comments,
+          approved: submissionReview.approved,
+        }),
+      })
+      setSubmissionReviewModal(null)
+      setSubmissionReview({ comments: '', approved: false })
+      const submissions = await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/submissions`, auth)
+      setThesisSubmissions(Array.isArray(submissions) ? submissions : [])
+    } catch (e) {
+      console.error(e)
+      alert('Failed to review submission: ' + e.message)
+    }
+  }
+
+  async function scheduleDefense() {
+    if (!selectedThesis?.id || !defenseForm.scheduledAt) {
+      alert('Please select a defense date/time')
+      return
+    }
+    try {
+      await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/defense`, auth, {
+        method: 'POST',
+        body: JSON.stringify({
+          scheduledAt: defenseForm.scheduledAt,
+          venue: defenseForm.venue,
+          examiners: defenseForm.examiners,
+        }),
+      })
+      setScheduleDefenseModal(false)
+      setDefenseForm({ scheduledAt: '', venue: '', examiners: '' })
+      fetchThesisDetails(selectedThesis.id)
+    } catch (e) {
+      console.error(e)
+      alert('Failed to schedule defense: ' + e.message)
+    }
+  }
+
+  async function recordDefenseOutcome(outcome, comments, finalGrade) {
+    if (!selectedThesis?.id) return
+    try {
+      await apiFetch(`${SUPERVISION_URL}/api/theses/${selectedThesis.id}/defense/outcome`, auth, {
+        method: 'POST',
+        body: JSON.stringify({ outcome, comments, finalGrade }),
+      })
+      fetchThesisDetails(selectedThesis.id)
+    } catch (e) {
+      console.error(e)
+      alert('Failed to record defense outcome: ' + e.message)
+    }
+  }
+
   useEffect(() => {
     if (!token) return
     fetchPrograms().catch(console.error)
     fetchSessions().catch(console.error)
     fetchChatHistory().catch(console.error)
     fetchAnnouncements().catch(console.error)
+    fetchTheses().catch(console.error) // Fetch theses for dashboard stats
     apiFetch(`${AUTH_URL}/api/auth/me`, auth).then(setMyProfile).catch(console.error)
     if (role === 'UNIVERSITY_ADMIN') {
       fetchSupervisors()
@@ -439,6 +680,13 @@ export default function UniversityPortalPage() {
       fetchStudents()
     }
   }, [token, role, studentFilter])
+
+  // Fetch theses when viewing theses section
+  useEffect(() => {
+    if (activeSection === 'theses' && token) {
+      fetchTheses()
+    }
+  }, [activeSection, token, thesisFilter.status, thesisFilter.studentUsername, username])
 
   useEffect(() => {
     if (!programs.length) return
@@ -774,6 +1022,34 @@ export default function UniversityPortalPage() {
             Planned {dashboard.planned} · Active {dashboard.active} · Completed {dashboard.completed}
           </div>
         </div>
+
+        {/* Thesis Quick Access */}
+        <div className="portal-card" style={{ marginTop: '1rem' }}>
+          <div className="portal-card__row" style={{ marginBottom: '0.75rem' }}>
+            <div className="portal-card__title">📚 Thesis Management</div>
+            <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setActiveSection('theses')}>
+              View All →
+            </button>
+          </div>
+          <div className="portal-card__meta">
+            Review student theses, provide milestone feedback, and manage defense schedules.
+          </div>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.85rem', flexWrap: 'wrap' }}>
+            <div style={{ textAlign: 'center', padding: '0.5rem 1rem', background: 'var(--surface-muted)', borderRadius: '8px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent)' }}>{theses.length}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Theses</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '0.5rem 1rem', background: 'var(--surface-muted)', borderRadius: '8px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b' }}>{theses.filter(t => t.status?.includes('REVIEW') || t.status?.includes('SUBMITTED')).length}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Pending Review</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '0.5rem 1rem', background: 'var(--surface-muted)', borderRadius: '8px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#22c55e' }}>{theses.filter(t => t.status === 'COMPLETED').length}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Completed</div>
+            </div>
+          </div>
+        </div>
+
         <div className="portal-grid" style={{ marginTop: '1rem' }}>
           <div className="portal-card">
             <div className="portal-card__title">Program catalog</div>
@@ -948,6 +1224,378 @@ export default function UniversityPortalPage() {
             )}
           </div>
         </div>
+      </section>
+      )}
+
+      {activeSection === 'theses' && (
+      <section className="portal-section">
+        <div className="portal-section__header">
+          <h2 className="portal-section__title">Thesis Management</h2>
+          <p className="portal-section__hint">Review and manage student theses, milestones, and submissions.</p>
+        </div>
+
+        {/* Filters */}
+        <div className="portal-panel" style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div className="portal-field" style={{ flex: 1, minWidth: '150px' }}>
+              <label htmlFor="thesis-status-filter">Status</label>
+              <select
+                id="thesis-status-filter"
+                value={thesisFilter.status}
+                onChange={(e) => setThesisFilter(f => ({ ...f, status: e.target.value }))}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)' }}
+              >
+                <option value="">All Statuses</option>
+                <option value="TOPIC_PROPOSED">Topic Proposed</option>
+                <option value="TOPIC_APPROVED">Topic Approved</option>
+                <option value="PROPOSAL_SUBMITTED">Proposal Submitted</option>
+                <option value="PROPOSAL_UNDER_REVIEW">Proposal Under Review</option>
+                <option value="PROPOSAL_APPROVED">Proposal Approved</option>
+                <option value="LITERATURE_REVIEW">Literature Review</option>
+                <option value="WRITING">Writing</option>
+                <option value="DRAFT_SUBMITTED">Draft Submitted</option>
+                <option value="DEFENSE_SCHEDULED">Defense Scheduled</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+            </div>
+            <div className="portal-field" style={{ flex: 1, minWidth: '150px' }}>
+              <label htmlFor="thesis-student-filter">Student</label>
+              <input
+                id="thesis-student-filter"
+                value={thesisFilter.studentUsername}
+                onChange={(e) => setThesisFilter(f => ({ ...f, studentUsername: e.target.value }))}
+                placeholder="Filter by student username"
+              />
+            </div>
+            <button type="button" className="portal-btn portal-btn--secondary" onClick={() => { setSelectedThesis(null); fetchTheses(); }}>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Thesis List or Details */}
+        {selectedThesis ? (
+          /* Thesis Details View */
+          <div>
+            <button type="button" className="portal-btn portal-btn--ghost" style={{ marginBottom: '1rem' }} onClick={() => setSelectedThesis(null)}>
+              ← Back to list
+            </button>
+
+            {/* Thesis Overview */}
+            <div className="portal-panel" style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem' }}>{selectedThesis.title}</h3>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                    <span className="portal-badge" style={{ background: THESIS_STATUS_COLORS[selectedThesis.status] || '#6b7280' }}>
+                      {selectedThesis.status?.replace(/_/g, ' ')}
+                    </span>
+                    {selectedThesis.programName && <span className="portal-badge" style={{ background: 'var(--surface-muted)', color: 'var(--text)' }}>{selectedThesis.programName}</span>}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                    <strong>Student:</strong> {selectedThesis.studentUsername} · <strong>Progress:</strong> {selectedThesis.progress || 0}%
+                  </div>
+                  {selectedThesis.supervisorUsername ? (
+                    <div style={{ fontSize: '0.9rem' }}><strong>Supervisor:</strong> {selectedThesis.supervisorUsername}</div>
+                  ) : role === 'UNIVERSITY_ADMIN' && (
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <select
+                        onChange={(e) => e.target.value && assignSupervisor(selectedThesis.id, e.target.value)}
+                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)' }}
+                      >
+                        <option value="">Assign Supervisor...</option>
+                        {supervisors.map(s => <option key={s.id} value={s.username}>{s.username}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <select
+                    value={selectedThesis.status}
+                    onChange={(e) => updateThesisStatus(selectedThesis.id, e.target.value)}
+                    style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)' }}
+                  >
+                    <option value="TOPIC_PROPOSED">Topic Proposed</option>
+                    <option value="TOPIC_APPROVED">Topic Approved</option>
+                    <option value="PROPOSAL_SUBMITTED">Proposal Submitted</option>
+                    <option value="PROPOSAL_UNDER_REVIEW">Proposal Under Review</option>
+                    <option value="PROPOSAL_REVISION_REQUIRED">Proposal Revision Required</option>
+                    <option value="PROPOSAL_APPROVED">Proposal Approved</option>
+                    <option value="LITERATURE_REVIEW">Literature Review</option>
+                    <option value="METHODOLOGY">Methodology</option>
+                    <option value="DATA_COLLECTION">Data Collection</option>
+                    <option value="DATA_ANALYSIS">Data Analysis</option>
+                    <option value="WRITING">Writing</option>
+                    <option value="DRAFT_SUBMITTED">Draft Submitted</option>
+                    <option value="DRAFT_UNDER_REVIEW">Draft Under Review</option>
+                    <option value="REVISION_IN_PROGRESS">Revision In Progress</option>
+                    <option value="FINAL_SUBMITTED">Final Submitted</option>
+                    <option value="DEFENSE_SCHEDULED">Defense Scheduled</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="FAILED">Failed</option>
+                  </select>
+                  {selectedThesis.status === 'FINAL_SUBMITTED' && !selectedThesis.defense && (
+                    <button type="button" className="portal-btn portal-btn--primary" onClick={() => setScheduleDefenseModal(true)}>
+                      Schedule Defense
+                    </button>
+                  )}
+                </div>
+              </div>
+              {selectedThesis.abstractText && (
+                <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--surface-muted)', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>Abstract</div>
+                  <p style={{ fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{selectedThesis.abstractText}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Defense Info */}
+            {selectedThesis.defense && (
+              <div className="portal-panel" style={{ marginBottom: '1.5rem', borderLeft: '4px solid #ec4899' }}>
+                <h4 style={{ marginBottom: '0.75rem' }}>🎓 Defense Record</h4>
+                <div style={{ fontSize: '0.9rem' }}>
+                  <div><strong>Scheduled:</strong> {new Date(selectedThesis.defense.scheduledAt).toLocaleString()}</div>
+                  {selectedThesis.defense.venue && <div><strong>Venue:</strong> {selectedThesis.defense.venue}</div>}
+                  {selectedThesis.defense.examiners?.length > 0 && <div><strong>Examiners:</strong> {selectedThesis.defense.examiners.join(', ')}</div>}
+                  {selectedThesis.defense.outcome && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <span className="portal-badge" style={{ background: selectedThesis.defense.outcome === 'PASSED' ? '#22c55e' : selectedThesis.defense.outcome === 'FAILED' ? '#ef4444' : '#f59e0b' }}>
+                        {selectedThesis.defense.outcome}
+                      </span>
+                      {selectedThesis.defense.finalGrade && <span style={{ marginLeft: '0.5rem' }}>Grade: {selectedThesis.defense.finalGrade}</span>}
+                    </div>
+                  )}
+                </div>
+                {selectedThesis.defense.outcome === 'PENDING' && (
+                  <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button type="button" className="portal-btn portal-btn--primary" onClick={() => recordDefenseOutcome('PASSED', '', 'A')}>Mark Passed</button>
+                    <button type="button" className="portal-btn portal-btn--secondary" onClick={() => recordDefenseOutcome('MINOR_CORRECTIONS', 'Minor corrections required', '')}>Minor Corrections</button>
+                    <button type="button" className="portal-btn portal-btn--secondary" onClick={() => recordDefenseOutcome('MAJOR_CORRECTIONS', 'Major corrections required', '')}>Major Corrections</button>
+                    <button type="button" className="portal-btn portal-btn--ghost" style={{ color: '#ef4444' }} onClick={() => recordDefenseOutcome('FAILED', 'Defense failed', 'F')}>Mark Failed</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Milestones Section */}
+            <div className="portal-panel" style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0 }}>Milestones</h4>
+                <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setShowMilestoneModal(true)}>
+                  + Add Milestone
+                </button>
+              </div>
+              {thesisMilestones.length === 0 ? (
+                <div className="portal-empty" style={{ padding: '1rem' }}>No milestones yet. Add milestones to track thesis progress.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {thesisMilestones.sort((a, b) => a.orderIndex - b.orderIndex).map((m) => (
+                    <div key={m.id} style={{ padding: '0.75rem', background: 'var(--surface-muted)', borderRadius: '8px', borderLeft: `4px solid ${MILESTONE_STATUS_COLORS[m.status] || '#6b7280'}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <strong>{m.name}</strong>
+                            <span className="portal-badge" style={{ background: MILESTONE_STATUS_COLORS[m.status] || '#6b7280', fontSize: '0.7rem' }}>
+                              {m.status?.replace(/_/g, ' ')}
+                            </span>
+                            {m.weightPercentage > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{m.weightPercentage}%</span>}
+                          </div>
+                          {m.description && <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0' }}>{m.description}</p>}
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            {m.dueDate && <span>Due: {m.dueDate}</span>}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {m.status === 'SUBMITTED' && (
+                            <>
+                              <button type="button" className="portal-btn portal-btn--primary" style={{ fontSize: '0.8rem' }} onClick={() => updateMilestoneStatus(m.id, 'APPROVED')}>Approve</button>
+                              <button type="button" className="portal-btn portal-btn--secondary" style={{ fontSize: '0.8rem' }} onClick={() => updateMilestoneStatus(m.id, 'REVISION_REQUIRED')}>Revise</button>
+                            </>
+                          )}
+                          <button type="button" className="portal-btn portal-btn--ghost" style={{ fontSize: '0.8rem' }} onClick={() => { setFeedbackingMilestone(m); setMilestoneFeedback(m.feedback || ''); }}>
+                            Feedback
+                          </button>
+                        </div>
+                      </div>
+                      {m.feedback && (
+                        <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'var(--surface)', borderRadius: '6px', fontSize: '0.85rem' }}>
+                          <strong>Feedback:</strong> {m.feedback}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Submissions Section */}
+            <div className="portal-panel">
+              <h4 style={{ marginBottom: '1rem' }}>Submissions</h4>
+              {thesisSubmissions.length === 0 ? (
+                <div className="portal-empty" style={{ padding: '1rem' }}>No submissions yet.</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {thesisSubmissions.map((sub) => (
+                    <div key={sub.id} className="portal-card">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span className="portal-badge" style={{ background: '#8b5cf6' }}>{sub.type?.replace(/_/g, ' ')}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>v{sub.versionNumber}</span>
+                      </div>
+                      <div className="portal-card__title">{sub.title}</div>
+                      <div className="portal-card__meta">{new Date(sub.submittedAt).toLocaleString()}</div>
+                      {sub.fileUrl && (
+                        <a href={sub.fileUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>View Document</a>
+                      )}
+                      {sub.reviewerComments ? (
+                        <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: 'var(--surface-muted)', borderRadius: '6px', fontSize: '0.85rem' }}>
+                          <div>{sub.isApproved ? '✅ Approved' : '❌ Not Approved'}</div>
+                          <div style={{ marginTop: '0.25rem' }}>{sub.reviewerComments}</div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="portal-btn portal-btn--secondary"
+                          style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}
+                          onClick={() => { setSubmissionReviewModal(sub); setSubmissionReview({ comments: '', approved: false }); }}
+                        >
+                          Review
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Thesis List View */
+          <>
+            {thesesLoading ? (
+              <div className="portal-empty">Loading theses...</div>
+            ) : theses.length === 0 ? (
+              <div className="portal-empty">No theses found. Students can create thesis proposals from their portal.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {theses.map((thesis) => (
+                  <div
+                    key={thesis.id}
+                    className="portal-card"
+                    style={{ cursor: 'pointer', borderLeft: `4px solid ${THESIS_STATUS_COLORS[thesis.status] || '#6b7280'}` }}
+                    onClick={() => fetchThesisDetails(thesis.id)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                      <div style={{ flex: 1 }}>
+                        <div className="portal-card__title">{thesis.title}</div>
+                        <div className="portal-card__meta">Student: {thesis.studentUsername}</div>
+                        {thesis.supervisorUsername && <div className="portal-card__meta">Supervisor: {thesis.supervisorUsername}</div>}
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span className="portal-badge" style={{ background: THESIS_STATUS_COLORS[thesis.status] || '#6b7280' }}>
+                          {thesis.status?.replace(/_/g, ' ')}
+                        </span>
+                        <div style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>{thesis.progress || 0}% complete</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Add Milestone Modal */}
+        {showMilestoneModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '1.5rem', width: '90%', maxWidth: '450px' }}>
+              <h3 style={{ marginBottom: '1rem' }}>Add Milestone</h3>
+              <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="milestone-name">Name *</label>
+                <input id="milestone-name" value={milestoneForm.name} onChange={(e) => setMilestoneForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Chapter 1 - Introduction" />
+              </div>
+              <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="milestone-desc">Description</label>
+                <textarea id="milestone-desc" rows={2} value={milestoneForm.description} onChange={(e) => setMilestoneForm(f => ({ ...f, description: e.target.value }))} placeholder="What should be completed" />
+              </div>
+              <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="milestone-due">Due Date</label>
+                <input id="milestone-due" type="date" value={milestoneForm.dueDate} onChange={(e) => setMilestoneForm(f => ({ ...f, dueDate: e.target.value }))} />
+              </div>
+              <div className="portal-field" style={{ marginBottom: '1rem' }}>
+                <label htmlFor="milestone-weight">Weight (%)</label>
+                <input id="milestone-weight" type="number" min="0" max="100" value={milestoneForm.weightPercentage} onChange={(e) => setMilestoneForm(f => ({ ...f, weightPercentage: parseInt(e.target.value) || 0 }))} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="portal-btn portal-btn--ghost" onClick={() => setShowMilestoneModal(false)}>Cancel</button>
+                <button type="button" className="portal-btn portal-btn--primary" onClick={createMilestone}>Add</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Milestone Feedback Modal */}
+        {feedbackingMilestone && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '1.5rem', width: '90%', maxWidth: '450px' }}>
+              <h3 style={{ marginBottom: '1rem' }}>Feedback for: {feedbackingMilestone.name}</h3>
+              <div className="portal-field" style={{ marginBottom: '1rem' }}>
+                <label htmlFor="milestone-feedback">Feedback</label>
+                <textarea id="milestone-feedback" rows={4} value={milestoneFeedback} onChange={(e) => setMilestoneFeedback(e.target.value)} placeholder="Enter your feedback for the student..." />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="portal-btn portal-btn--ghost" onClick={() => setFeedbackingMilestone(null)}>Cancel</button>
+                <button type="button" className="portal-btn portal-btn--primary" onClick={submitMilestoneFeedback}>Submit Feedback</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Submission Review Modal */}
+        {submissionReviewModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '1.5rem', width: '90%', maxWidth: '450px' }}>
+              <h3 style={{ marginBottom: '1rem' }}>Review: {submissionReviewModal.title}</h3>
+              <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="review-comments">Comments</label>
+                <textarea id="review-comments" rows={4} value={submissionReview.comments} onChange={(e) => setSubmissionReview(r => ({ ...r, comments: e.target.value }))} placeholder="Your review comments..." />
+              </div>
+              <div className="portal-field" style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="checkbox" checked={submissionReview.approved} onChange={(e) => setSubmissionReview(r => ({ ...r, approved: e.target.checked }))} />
+                  Approve this submission
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="portal-btn portal-btn--ghost" onClick={() => setSubmissionReviewModal(null)}>Cancel</button>
+                <button type="button" className="portal-btn portal-btn--primary" onClick={reviewSubmission}>Submit Review</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Schedule Defense Modal */}
+        {scheduleDefenseModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '1.5rem', width: '90%', maxWidth: '450px' }}>
+              <h3 style={{ marginBottom: '1rem' }}>Schedule Defense</h3>
+              <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="defense-date">Date & Time *</label>
+                <input id="defense-date" type="datetime-local" value={defenseForm.scheduledAt} onChange={(e) => setDefenseForm(f => ({ ...f, scheduledAt: e.target.value }))} />
+              </div>
+              <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="defense-venue">Venue</label>
+                <input id="defense-venue" value={defenseForm.venue} onChange={(e) => setDefenseForm(f => ({ ...f, venue: e.target.value }))} placeholder="Room/Location" />
+              </div>
+              <div className="portal-field" style={{ marginBottom: '1rem' }}>
+                <label htmlFor="defense-examiners">Examiners (comma-separated)</label>
+                <input id="defense-examiners" value={defenseForm.examiners} onChange={(e) => setDefenseForm(f => ({ ...f, examiners: e.target.value }))} placeholder="Dr. Smith, Dr. Jones" />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="portal-btn portal-btn--ghost" onClick={() => setScheduleDefenseModal(false)}>Cancel</button>
+                <button type="button" className="portal-btn portal-btn--primary" onClick={scheduleDefense}>Schedule</button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
       )}
 

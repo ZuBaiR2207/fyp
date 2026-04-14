@@ -6,13 +6,33 @@ import { useRealtime } from '../hooks/useRealtime'
 
 const NAV = [
   { id: 'dashboard', label: 'Dashboard', icon: 'layout' },
-  { id: 'progress', label: 'Thesis progress', icon: 'chart' },
+  { id: 'thesis', label: 'My Thesis', icon: 'file' },
+  { id: 'milestones', label: 'Milestones', icon: 'check' },
+  { id: 'submissions', label: 'Submissions', icon: 'upload' },
   { id: 'reminders', label: 'Reminders', icon: 'bell' },
   { id: 'sessions', label: 'Sessions', icon: 'calendar' },
   { id: 'chat', label: 'Chat', icon: 'message' },
   { id: 'summarizer', label: 'Summarizer', icon: 'search' },
   { id: 'feed', label: 'Live status', icon: 'activity' },
 ]
+
+// Status badge colors
+const STATUS_COLORS = {
+  TOPIC_PROPOSED: '#f59e0b',
+  TOPIC_APPROVED: '#10b981',
+  IN_PROGRESS: '#3b82f6',
+  PROPOSAL_SUBMITTED: '#8b5cf6',
+  PROPOSAL_APPROVED: '#10b981',
+  DRAFT_SUBMITTED: '#8b5cf6',
+  UNDER_REVIEW: '#f59e0b',
+  READY_FOR_DEFENSE: '#10b981',
+  DEFENSE_SCHEDULED: '#3b82f6',
+  COMPLETED: '#059669',
+  NOT_STARTED: '#6b7280',
+  SUBMITTED: '#8b5cf6',
+  APPROVED: '#10b981',
+  REVISION_REQUIRED: '#ef4444',
+}
 
 function ProgressDonut({ value, label, helper, stroke }) {
   const clamped = Math.max(0, Math.min(100, value))
@@ -79,6 +99,29 @@ export default function StudentPortalPage() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [announcements, setAnnouncements] = useState([])
 
+  // Thesis state
+  const [myThesis, setMyThesis] = useState(null)
+  const [thesisLoading, setThesisLoading] = useState(true)
+  const [showCreateThesis, setShowCreateThesis] = useState(false)
+  const [thesisForm, setThesisForm] = useState({
+    title: '',
+    abstractText: '',
+    keywords: '',
+    researchArea: '',
+    expectedEndDate: '',
+  })
+  const [milestones, setMilestones] = useState([])
+  const [submissions, setSubmissions] = useState([])
+  const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [submitForm, setSubmitForm] = useState({
+    type: 'CHAPTER_DRAFT',
+    title: '',
+    description: '',
+    fileUrl: '',
+    milestoneId: '',
+  })
+  const [programs, setPrograms] = useState([])
+
   useEffect(() => {
     if (!token) return
 
@@ -100,6 +143,20 @@ export default function StudentPortalPage() {
 
     apiFetch(`${NOTIFICATION_URL}/api/chat/messages`, auth)
       .then((messages) => setChatHistory(Array.isArray(messages) ? messages : []))
+      .catch(console.error)
+
+    // Fetch thesis data
+    apiFetch(`${SUPERVISION_URL}/api/theses/my`, auth)
+      .then((thesis) => {
+        setMyThesis(thesis)
+        if (thesis?.milestones) setMilestones(thesis.milestones)
+      })
+      .catch(() => setMyThesis(null))
+      .finally(() => setThesisLoading(false))
+
+    // Fetch programs for thesis creation
+    apiFetch(`${SUPERVISION_URL}/api/programs`, auth)
+      .then((progs) => setPrograms(Array.isArray(progs) ? progs : []))
       .catch(console.error)
   }, [token])
 
@@ -255,6 +312,108 @@ export default function StudentPortalPage() {
       setAssistantLoading(false)
     }
   }
+
+  // ===================== THESIS FUNCTIONS =====================
+
+  async function createThesis() {
+    if (!thesisForm.title.trim()) {
+      alert('Please enter a thesis title')
+      return
+    }
+    try {
+      const thesis = await apiFetch(`${SUPERVISION_URL}/api/theses`, auth, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: thesisForm.title,
+          abstractText: thesisForm.abstractText,
+          keywords: thesisForm.keywords,
+          researchArea: thesisForm.researchArea,
+          expectedEndDate: thesisForm.expectedEndDate || null,
+          startDate: new Date().toISOString().split('T')[0],
+        }),
+      })
+      setMyThesis(thesis)
+      if (thesis?.milestones) setMilestones(thesis.milestones)
+      setShowCreateThesis(false)
+      setThesisForm({ title: '', abstractText: '', keywords: '', researchArea: '', expectedEndDate: '' })
+    } catch (e) {
+      console.error(e)
+      alert('Failed to create thesis: ' + e.message)
+    }
+  }
+
+  async function fetchMilestones() {
+    if (!myThesis?.id) return
+    try {
+      const ms = await apiFetch(`${SUPERVISION_URL}/api/theses/${myThesis.id}/milestones`, auth)
+      setMilestones(Array.isArray(ms) ? ms : [])
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  async function fetchSubmissions() {
+    if (!myThesis?.id) return
+    try {
+      const subs = await apiFetch(`${SUPERVISION_URL}/api/theses/${myThesis.id}/submissions`, auth)
+      setSubmissions(Array.isArray(subs) ? subs : [])
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  async function submitMilestone(milestoneId) {
+    if (!myThesis?.id) return
+    try {
+      await apiFetch(`${SUPERVISION_URL}/api/theses/${myThesis.id}/milestones/${milestoneId}`, auth, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'SUBMITTED' }),
+      })
+      fetchMilestones()
+    } catch (e) {
+      console.error(e)
+      alert('Failed to submit milestone: ' + e.message)
+    }
+  }
+
+  async function createSubmission() {
+    if (!myThesis?.id || !submitForm.title.trim()) {
+      alert('Please enter a title for your submission')
+      return
+    }
+    try {
+      await apiFetch(`${SUPERVISION_URL}/api/theses/${myThesis.id}/submissions`, auth, {
+        method: 'POST',
+        body: JSON.stringify({
+          type: submitForm.type,
+          title: submitForm.title,
+          description: submitForm.description,
+          fileUrl: submitForm.fileUrl,
+          milestoneId: submitForm.milestoneId || null,
+        }),
+      })
+      setShowSubmitModal(false)
+      setSubmitForm({ type: 'CHAPTER_DRAFT', title: '', description: '', fileUrl: '', milestoneId: '' })
+      fetchSubmissions()
+    } catch (e) {
+      console.error(e)
+      alert('Failed to create submission: ' + e.message)
+    }
+  }
+
+  // Fetch milestones when switching to milestones tab
+  useEffect(() => {
+    if (activeSection === 'milestones' && myThesis?.id) {
+      fetchMilestones()
+    }
+  }, [activeSection, myThesis?.id])
+
+  // Fetch submissions when switching to submissions tab
+  useEffect(() => {
+    if (activeSection === 'submissions' && myThesis?.id) {
+      fetchSubmissions()
+    }
+  }, [activeSection, myThesis?.id])
 
   const thesisProgress = useMemo(() => {
     const total = sessions.length
@@ -437,6 +596,38 @@ export default function StudentPortalPage() {
             <div className="portal-stat__label">Completed milestones</div>
           </div>
         </div>
+
+        {/* Thesis Status Card */}
+        {myThesis && (
+          <div className="portal-card" style={{ marginTop: '1rem', borderLeft: `4px solid ${STATUS_COLORS[myThesis.status] || '#6b7280'}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1 }}>
+                <div className="portal-card__title" style={{ marginBottom: '0.5rem' }}>{myThesis.title}</div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                  <span className="portal-badge" style={{ background: STATUS_COLORS[myThesis.status] || '#6b7280' }}>
+                    {myThesis.status?.replace(/_/g, ' ')}
+                  </span>
+                  {myThesis.supervisorUsername && (
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Supervisor: {myThesis.supervisorUsername}</span>
+                  )}
+                </div>
+                {milestones.length > 0 && (
+                  <div className="portal-card__meta">
+                    {milestones.filter(m => m.status === 'APPROVED').length}/{milestones.length} milestones completed
+                  </div>
+                )}
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent)' }}>{myThesis.progress || 0}%</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Progress</div>
+              </div>
+            </div>
+            <div style={{ marginTop: '0.75rem' }}>
+              <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setActiveSection('thesis')}>View Details →</button>
+            </div>
+          </div>
+        )}
+
         <div className="portal-grid" style={{ marginTop: '1rem' }}>
           <div className="portal-card">
             <div className="portal-card__title">Upcoming deadline</div>
@@ -446,7 +637,8 @@ export default function StudentPortalPage() {
           <div className="portal-card">
             <div className="portal-card__title">Quick access</div>
             <div className="portal-card__body" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setActiveSection('progress')}>Progress</button>
+              <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setActiveSection('thesis')}>My Thesis</button>
+              <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setActiveSection('milestones')}>Milestones</button>
               <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setActiveSection('chat')}>Chat advisor</button>
               <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setActiveSection('summarizer')}>Paper summarizer</button>
             </div>
@@ -531,53 +723,359 @@ export default function StudentPortalPage() {
       </section>
       )}
 
-      {activeSection === 'progress' && (
+      {activeSection === 'thesis' && (
       <section className="portal-section">
         <div className="portal-section__header">
-          <h2 className="portal-section__title">Thesis progress</h2>
-          <p className="portal-section__hint">A quick visual view of your current supervision progress.</p>
+          <h2 className="portal-section__title">My Thesis</h2>
+          <p className="portal-section__hint">View and manage your thesis project.</p>
         </div>
-        <div className="portal-grid" style={{ alignItems: 'stretch' }}>
-          <ProgressDonut
-            value={thesisProgress.completion}
-            label="Overall thesis progress"
-            helper={thesisProgress.total ? `${thesisProgress.total} supervision milestone(s) tracked` : 'No sessions yet'}
-            stroke="var(--accent)"
-          />
-          <ProgressDonut
-            value={thesisProgress.feedbackCoverage}
-            label="Feedback coverage"
-            helper={thesisProgress.total ? `${thesisProgress.feedbackReady}/${thesisProgress.total} sessions with feedback` : 'Waiting for first review'}
-            stroke="#6f8b5d"
-          />
-          <div className="portal-card" style={{ minHeight: '220px' }}>
-            <div className="portal-card__title">Progress breakdown</div>
-            <div className="portal-card__meta" style={{ marginTop: '0.35rem' }}>
-              Next deadline · {thesisProgress.upcomingDeadline ?? 'Not scheduled yet'}
-            </div>
-            <div style={{ display: 'grid', gap: '0.9rem', marginTop: '1rem' }}>
-              {thesisProgress.statusBreakdown.map((item) => (
-                <div key={item.label}>
-                  <div className="portal-card__row" style={{ marginBottom: '0.35rem' }}>
-                    <span className="portal-card__meta">{item.label}</span>
-                    <span className="portal-card__meta">{item.value} · {item.percent}%</span>
+
+        {thesisLoading ? (
+          <div className="portal-empty">Loading thesis data...</div>
+        ) : myThesis ? (
+          <>
+            {/* Thesis Overview Card */}
+            <div className="portal-panel" style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ flex: 1, minWidth: '250px' }}>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-h)' }}>
+                    {myThesis.title}
+                  </h3>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                    <span className="portal-badge" style={{ background: STATUS_COLORS[myThesis.status] || '#6b7280' }}>
+                      {myThesis.status?.replace(/_/g, ' ')}
+                    </span>
+                    {myThesis.programName && <span className="portal-badge" style={{ background: 'var(--surface-muted)', color: 'var(--text)' }}>{myThesis.programName}</span>}
                   </div>
-                  <div style={{ height: '10px', borderRadius: '999px', background: 'var(--surface-muted)', overflow: 'hidden' }}>
-                    <div
-                      style={{
-                        width: `${item.percent}%`,
-                        height: '100%',
-                        borderRadius: '999px',
-                        background: item.color,
-                        transition: 'width 0.25s ease',
-                      }}
-                    />
+                  {myThesis.abstractText && (
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '1rem' }}>
+                      {myThesis.abstractText.length > 300 ? myThesis.abstractText.slice(0, 300) + '...' : myThesis.abstractText}
+                    </p>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', fontSize: '0.85rem' }}>
+                    {myThesis.supervisorUsername && (
+                      <div><span style={{ color: 'var(--text-muted)' }}>Supervisor:</span> <strong>{myThesis.supervisorUsername}</strong></div>
+                    )}
+                    {myThesis.researchArea && (
+                      <div><span style={{ color: 'var(--text-muted)' }}>Research Area:</span> {myThesis.researchArea}</div>
+                    )}
+                    {myThesis.startDate && (
+                      <div><span style={{ color: 'var(--text-muted)' }}>Started:</span> {myThesis.startDate}</div>
+                    )}
+                    {myThesis.expectedEndDate && (
+                      <div><span style={{ color: 'var(--text-muted)' }}>Expected End:</span> {myThesis.expectedEndDate}</div>
+                    )}
                   </div>
                 </div>
-              ))}
+                <div style={{ textAlign: 'center', minWidth: '140px' }}>
+                  <ProgressDonut
+                    value={myThesis.progress || 0}
+                    label="Progress"
+                    helper={`${milestones.filter(m => m.status === 'APPROVED').length}/${milestones.length} milestones`}
+                    stroke="var(--accent)"
+                  />
+                </div>
+              </div>
             </div>
+
+            {/* Defense Info (if scheduled) */}
+            {myThesis.defense && (
+              <div className="portal-card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid var(--accent)' }}>
+                <div className="portal-card__title">🎓 Defense Scheduled</div>
+                <div className="portal-card__body">
+                  <strong>{new Date(myThesis.defense.scheduledAt).toLocaleString()}</strong>
+                  {myThesis.defense.venue && <span> at {myThesis.defense.venue}</span>}
+                </div>
+                {myThesis.defense.examiners?.length > 0 && (
+                  <div className="portal-card__meta">Examiners: {myThesis.defense.examiners.join(', ')}</div>
+                )}
+              </div>
+            )}
+
+            {/* Keywords */}
+            {myThesis.keywords && (
+              <div style={{ marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Keywords: </span>
+                {myThesis.keywords.split(',').map((kw, i) => (
+                  <span key={i} style={{ display: 'inline-block', background: 'var(--surface-muted)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', margin: '0.15rem' }}>
+                    {kw.trim()}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          /* No thesis - show create form */
+          <div className="portal-panel">
+            {!showCreateThesis ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>You haven't started a thesis yet</h3>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Create your thesis proposal to begin tracking your progress.</p>
+                <button type="button" className="portal-btn portal-btn--primary" onClick={() => setShowCreateThesis(true)}>
+                  Start Thesis Proposal
+                </button>
+              </div>
+            ) : (
+              <div>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Create Thesis Proposal</h3>
+                <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                  <label htmlFor="thesis-title">Title *</label>
+                  <input
+                    id="thesis-title"
+                    value={thesisForm.title}
+                    onChange={(e) => setThesisForm(f => ({ ...f, title: e.target.value }))}
+                    placeholder="Enter your thesis title"
+                  />
+                </div>
+                <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                  <label htmlFor="thesis-abstract">Abstract</label>
+                  <textarea
+                    id="thesis-abstract"
+                    rows={4}
+                    value={thesisForm.abstractText}
+                    onChange={(e) => setThesisForm(f => ({ ...f, abstractText: e.target.value }))}
+                    placeholder="Brief description of your research"
+                  />
+                </div>
+                <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                  <label htmlFor="thesis-keywords">Keywords (comma-separated)</label>
+                  <input
+                    id="thesis-keywords"
+                    value={thesisForm.keywords}
+                    onChange={(e) => setThesisForm(f => ({ ...f, keywords: e.target.value }))}
+                    placeholder="machine learning, NLP, healthcare"
+                  />
+                </div>
+                <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                  <label htmlFor="thesis-area">Research Area</label>
+                  <input
+                    id="thesis-area"
+                    value={thesisForm.researchArea}
+                    onChange={(e) => setThesisForm(f => ({ ...f, researchArea: e.target.value }))}
+                    placeholder="e.g., Artificial Intelligence"
+                  />
+                </div>
+                <div className="portal-field" style={{ marginBottom: '1rem' }}>
+                  <label htmlFor="thesis-end-date">Expected Completion Date</label>
+                  <input
+                    id="thesis-end-date"
+                    type="date"
+                    value={thesisForm.expectedEndDate}
+                    onChange={(e) => setThesisForm(f => ({ ...f, expectedEndDate: e.target.value }))}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button type="button" className="portal-btn portal-btn--primary" onClick={createThesis}>
+                    Submit Proposal
+                  </button>
+                  <button type="button" className="portal-btn portal-btn--ghost" onClick={() => setShowCreateThesis(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+        )}
+      </section>
+      )}
+
+      {activeSection === 'milestones' && (
+      <section className="portal-section">
+        <div className="portal-section__header">
+          <h2 className="portal-section__title">Milestones</h2>
+          <p className="portal-section__hint">Track your thesis chapter progress and deadlines.</p>
         </div>
+
+        {!myThesis ? (
+          <div className="portal-empty">Please create a thesis first to view milestones.</div>
+        ) : milestones.length === 0 ? (
+          <div className="portal-empty">No milestones created yet. Your supervisor will add milestones for you.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {milestones.sort((a, b) => a.orderIndex - b.orderIndex).map((milestone) => (
+              <div
+                key={milestone.id}
+                className="portal-card"
+                style={{
+                  borderLeft: `4px solid ${STATUS_COLORS[milestone.status] || '#6b7280'}`,
+                  opacity: milestone.status === 'APPROVED' ? 0.8 : 1,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                      <span style={{ fontSize: '1rem', fontWeight: 600 }}>{milestone.name}</span>
+                      <span className="portal-badge" style={{ background: STATUS_COLORS[milestone.status] || '#6b7280', fontSize: '0.7rem' }}>
+                        {milestone.status?.replace(/_/g, ' ')}
+                      </span>
+                      {milestone.isOverdue && <span className="portal-badge" style={{ background: '#ef4444', fontSize: '0.7rem' }}>OVERDUE</span>}
+                    </div>
+                    {milestone.description && (
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{milestone.description}</p>
+                    )}
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {milestone.dueDate && <span>Due: {milestone.dueDate}</span>}
+                      {milestone.submittedAt && <span> · Submitted: {new Date(milestone.submittedAt).toLocaleDateString()}</span>}
+                    </div>
+                  </div>
+                  <div>
+                    {(milestone.status === 'NOT_STARTED' || milestone.status === 'IN_PROGRESS') && (
+                      <button
+                        type="button"
+                        className="portal-btn portal-btn--primary"
+                        style={{ fontSize: '0.85rem' }}
+                        onClick={() => submitMilestone(milestone.id)}
+                      >
+                        Mark as Submitted
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {milestone.feedback && (
+                  <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--surface-muted)', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      Feedback from {milestone.feedbackBy}
+                    </div>
+                    <p style={{ fontSize: '0.85rem', margin: 0 }}>{milestone.feedback}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+      )}
+
+      {activeSection === 'submissions' && (
+      <section className="portal-section">
+        <div className="portal-section__header">
+          <h2 className="portal-section__title">Submissions</h2>
+          <p className="portal-section__hint">Upload and track your thesis documents.</p>
+        </div>
+
+        {!myThesis ? (
+          <div className="portal-empty">Please create a thesis first to make submissions.</div>
+        ) : (
+          <>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <button type="button" className="portal-btn portal-btn--primary" onClick={() => setShowSubmitModal(true)}>
+                + New Submission
+              </button>
+            </div>
+
+            {submissions.length === 0 ? (
+              <div className="portal-empty">No submissions yet. Click "New Submission" to upload your first document.</div>
+            ) : (
+              <div className="portal-grid">
+                {submissions.map((sub) => (
+                  <div key={sub.id} className="portal-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <span className="portal-badge" style={{ background: '#8b5cf6' }}>{sub.type?.replace(/_/g, ' ')}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>v{sub.versionNumber}</span>
+                    </div>
+                    <div className="portal-card__title">{sub.title}</div>
+                    {sub.description && <p className="portal-card__meta">{sub.description}</p>}
+                    <div className="portal-card__meta" style={{ marginTop: '0.5rem' }}>
+                      Submitted: {new Date(sub.submittedAt).toLocaleString()}
+                    </div>
+                    {sub.fileUrl && (
+                      <a href={sub.fileUrl} target="_blank" rel="noreferrer" className="portal-btn portal-btn--secondary" style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>
+                        View Document
+                      </a>
+                    )}
+                    {sub.reviewerComments && (
+                      <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--surface-muted)', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                          Review by {sub.reviewerUsername} {sub.isApproved ? '✅' : '❌'}
+                        </div>
+                        <p style={{ fontSize: '0.85rem', margin: 0 }}>{sub.reviewerComments}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Submit Modal */}
+            {showSubmitModal && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+              }}>
+                <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '1.5rem', width: '90%', maxWidth: '500px' }}>
+                  <h3 style={{ marginBottom: '1rem' }}>New Submission</h3>
+                  <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                    <label htmlFor="sub-type">Type</label>
+                    <select
+                      id="sub-type"
+                      value={submitForm.type}
+                      onChange={(e) => setSubmitForm(f => ({ ...f, type: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)' }}
+                    >
+                      <option value="PROPOSAL">Proposal</option>
+                      <option value="CHAPTER_DRAFT">Chapter Draft</option>
+                      <option value="FULL_DRAFT">Full Draft</option>
+                      <option value="REVISION">Revision</option>
+                      <option value="FINAL">Final</option>
+                    </select>
+                  </div>
+                  <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                    <label htmlFor="sub-title">Title *</label>
+                    <input
+                      id="sub-title"
+                      value={submitForm.title}
+                      onChange={(e) => setSubmitForm(f => ({ ...f, title: e.target.value }))}
+                      placeholder="e.g., Chapter 2 - Literature Review"
+                    />
+                  </div>
+                  <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                    <label htmlFor="sub-desc">Description</label>
+                    <textarea
+                      id="sub-desc"
+                      rows={3}
+                      value={submitForm.description}
+                      onChange={(e) => setSubmitForm(f => ({ ...f, description: e.target.value }))}
+                      placeholder="Brief notes about this submission"
+                    />
+                  </div>
+                  <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                    <label htmlFor="sub-url">Document URL</label>
+                    <input
+                      id="sub-url"
+                      value={submitForm.fileUrl}
+                      onChange={(e) => setSubmitForm(f => ({ ...f, fileUrl: e.target.value }))}
+                      placeholder="Google Drive, Dropbox, or other link"
+                    />
+                  </div>
+                  {milestones.length > 0 && (
+                    <div className="portal-field" style={{ marginBottom: '1rem' }}>
+                      <label htmlFor="sub-milestone">Related Milestone (optional)</label>
+                      <select
+                        id="sub-milestone"
+                        value={submitForm.milestoneId}
+                        onChange={(e) => setSubmitForm(f => ({ ...f, milestoneId: e.target.value }))}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)' }}
+                      >
+                        <option value="">-- Select --</option>
+                        {milestones.map(m => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                    <button type="button" className="portal-btn portal-btn--ghost" onClick={() => setShowSubmitModal(false)}>
+                      Cancel
+                    </button>
+                    <button type="button" className="portal-btn portal-btn--primary" onClick={createSubmission}>
+                      Submit
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </section>
       )}
 
