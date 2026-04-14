@@ -32,16 +32,25 @@ public class AiChatbotService {
       );
     }
 
-    String reply = chatClient.prompt()
-        .user(message)
-        .call()
-        .content();
+    try {
+      String reply = chatClient.prompt()
+          .user(message)
+          .call()
+          .content();
 
-    if (reply == null || reply.isBlank()) {
-      reply = "I could not generate a response right now. Please try again.";
+      if (reply == null || reply.isBlank()) {
+        reply = "I could not generate a response right now. Please try again.";
+      }
+
+      return new ChatResult(reply, false);
+    } catch (Exception e) {
+      // Log the error and return a fallback response
+      System.err.println("AI Chat Error: " + e.getMessage());
+      return new ChatResult(
+          "AI service is temporarily unavailable. Please check your API key or try again later. Error: " + e.getMessage(),
+          true
+      );
     }
-
-    return new ChatResult(reply, false);
   }
 
   public record ChatResult(String reply, boolean fallback) {}

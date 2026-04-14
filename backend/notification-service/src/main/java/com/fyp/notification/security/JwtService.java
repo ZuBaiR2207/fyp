@@ -2,10 +2,14 @@ package com.fyp.notification.security;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 import java.util.function.Function;
 import java.security.Key;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +54,18 @@ public class JwtService {
   public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
     Claims claims = extractAllClaims(token);
     return claimsResolver.apply(claims);
+  }
+
+  public List<GrantedAuthority> extractAuthorities(String token) {
+    Claims claims = extractAllClaims(token);
+    @SuppressWarnings("unchecked")
+    List<String> roles = claims.get("role", List.class);
+    if (roles == null) {
+      return List.of();
+    }
+    return roles.stream()
+        .map(SimpleGrantedAuthority::new)
+        .collect(Collectors.toList());
   }
 
   public boolean isTokenValid(String token, UserDetails userDetails) {

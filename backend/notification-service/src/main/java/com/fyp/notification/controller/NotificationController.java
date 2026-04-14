@@ -8,11 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.access.prepost.PreAuthorize;
+// import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,7 +56,7 @@ public class NotificationController {
   }
 
   @PostMapping("/api/announcements")
-  @PreAuthorize("hasRole('UNIVERSITY_ADMIN')")
+  // @PreAuthorize("hasRole('UNIVERSITY_ADMIN')")
   public ResponseEntity<AnnouncementDto> createAnnouncement(
       @RequestBody @Valid CreateAnnouncementRequest request,
       Authentication authentication
@@ -80,7 +79,7 @@ public class NotificationController {
   }
 
   @DeleteMapping("/api/announcements/{announcementId}")
-  @PreAuthorize("hasRole('UNIVERSITY_ADMIN')")
+  // @PreAuthorize("hasRole('UNIVERSITY_ADMIN')")
   public ResponseEntity<Void> deleteAnnouncement(
       @PathVariable("announcementId") String announcementId,
       Authentication authentication

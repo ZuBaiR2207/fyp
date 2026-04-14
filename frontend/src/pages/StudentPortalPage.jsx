@@ -75,11 +75,12 @@ export default function StudentPortalPage() {
   const [paymentError, setPaymentError] = useState('')
   const [activeSection, setActiveSection] = useState('dashboard')
   const [myProfile, setMyProfile] = useState(null)
+  const username = myProfile?.username || ''
   const [photoUploading, setPhotoUploading] = useState(false)
   const [announcements, setAnnouncements] = useState([])
 
   useEffect(() => {
-    if (!password) return
+    if (!token) return
 
     apiFetch(`${SUPERVISION_URL}/api/sessions`, auth)
       .then(setSessions)
@@ -100,7 +101,7 @@ export default function StudentPortalPage() {
     apiFetch(`${NOTIFICATION_URL}/api/chat/messages`, auth)
       .then((messages) => setChatHistory(Array.isArray(messages) ? messages : []))
       .catch(console.error)
-  }, [password])
+  }, [token])
 
   useEffect(() => {
     if (!latestReminders.length) return

@@ -38,6 +38,15 @@ export default function UniversityPortalPage() {
   const [newStudentPhoto, setNewStudentPhoto] = useState('')  // base64 data URL
   const [editingUserId, setEditingUserId] = useState(null)
   const [editingPassword, setEditingPassword] = useState('')
+  const [editingUser, setEditingUser] = useState(null) // full user object being edited
+  const [editUserForm, setEditUserForm] = useState({
+    fullName: '',
+    email: '',
+    studentId: '',
+    courseName: '',
+    password: '',
+    photoData: '',
+  })
 
   const [programs, setPrograms] = useState([])
   const [newProgramName, setNewProgramName] = useState('')
@@ -63,6 +72,7 @@ export default function UniversityPortalPage() {
   const [assistantLoading, setAssistantLoading] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [myProfile, setMyProfile] = useState(null)
+  const username = myProfile?.username || ''
   const [photoUploading, setPhotoUploading] = useState(false)
   const [announcements, setAnnouncements] = useState([])
   const [announcementDraft, setAnnouncementDraft] = useState({
@@ -337,6 +347,66 @@ export default function UniversityPortalPage() {
     }
   }
 
+  function startEditingUser(user) {
+    setEditingUser(user)
+    setEditUserForm({
+      fullName: user.fullName || '',
+      email: user.email || '',
+      studentId: user.studentId || '',
+      courseName: user.courseName || '',
+      password: '',
+      photoData: user.photoData || '',
+    })
+  }
+
+  function cancelEditingUser() {
+    setEditingUser(null)
+    setEditUserForm({ fullName: '', email: '', studentId: '', courseName: '', password: '', photoData: '' })
+  }
+
+  async function saveUserChanges() {
+    if (!editingUser) return
+    try {
+      const payload = {}
+      if (editUserForm.fullName !== (editingUser.fullName || '')) payload.fullName = editUserForm.fullName
+      if (editUserForm.email !== (editingUser.email || '')) payload.email = editUserForm.email
+      if (editUserForm.studentId !== (editingUser.studentId || '')) payload.studentId = editUserForm.studentId
+      if (editUserForm.courseName !== (editingUser.courseName || '')) payload.courseName = editUserForm.courseName
+      if (editUserForm.password.trim()) payload.password = editUserForm.password
+      if (editUserForm.photoData !== (editingUser.photoData || '')) payload.photoData = editUserForm.photoData
+
+      if (Object.keys(payload).length === 0) {
+        alert('No changes to save')
+        return
+      }
+
+      await apiFetch(`${AUTH_URL}/api/auth/users/${editingUser.id}`, auth, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      })
+      cancelEditingUser()
+      if (role === 'UNIVERSITY_ADMIN') {
+        fetchSupervisors()
+      }
+      if (role === 'UNIVERSITY_ADMIN' || role === 'SUPERVISOR') {
+        fetchStudents()
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Error updating user: ' + e.message)
+    }
+  }
+
+  function handleEditUserPhotoChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setEditUserForm((prev) => ({ ...prev, photoData: ev.target.result }))
+    }
+    reader.readAsDataURL(file)
+  }
+
   async function deleteUser(userId) {
     if (!confirm('Are you sure you want to delete this user?')) return
     try {
@@ -356,7 +426,7 @@ export default function UniversityPortalPage() {
   }
 
   useEffect(() => {
-    if (!password) return
+    if (!token) return
     fetchPrograms().catch(console.error)
     fetchSessions().catch(console.error)
     fetchChatHistory().catch(console.error)
@@ -368,7 +438,7 @@ export default function UniversityPortalPage() {
     if (role === 'UNIVERSITY_ADMIN' || role === 'SUPERVISOR') {
       fetchStudents()
     }
-  }, [password, role, studentFilter])
+  }, [token, role, studentFilter])
 
   useEffect(() => {
     if (!programs.length) return
@@ -1176,14 +1246,16 @@ export default function UniversityPortalPage() {
                       <div key={sup.id} className="portal-card">
                         <div className="portal-card__title">{sup.username}</div>
                         <div className="portal-card__meta">ID: {sup.id}</div>
+                        {sup.fullName && <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>{sup.fullName}</div>}
+                        {sup.email && <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{sup.email}</div>}
                         <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button
                             type="button"
-                            className="portal-btn portal-btn--secondary"
-                            onClick={() => setEditingUserId(sup.id)}
+                            className="portal-btn portal-btn--primary"
+                            onClick={() => startEditingUser(sup)}
                             style={{ fontSize: '0.85rem', padding: '0.4rem 0.7rem' }}
                           >
-                            Change password
+                            Edit
                           </button>
                           <button
                             type="button"
@@ -1194,42 +1266,6 @@ export default function UniversityPortalPage() {
                             Delete
                           </button>
                         </div>
-                        {editingUserId === sup.id && (
-                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
-                            <div className="portal-field" style={{ marginBottom: '0.5rem' }}>
-                              <label htmlFor={`edit-pass-${sup.id}`}>New password</label>
-                              <input
-                                id={`edit-pass-${sup.id}`}
-                                type="password"
-                                value={editingPassword}
-                                onChange={(e) => setEditingPassword(e.target.value)}
-                                placeholder="Enter new password"
-                              />
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <button
-                                type="button"
-                                className="portal-btn portal-btn--primary"
-                                onClick={() => updateUserPassword(sup.id, editingPassword)}
-                                disabled={!editingPassword.trim()}
-                                style={{ fontSize: '0.85rem' }}
-                              >
-                                Update
-                              </button>
-                              <button
-                                type="button"
-                                className="portal-btn portal-btn--ghost"
-                                onClick={() => {
-                                  setEditingUserId(null)
-                                  setEditingPassword('')
-                                }}
-                                style={{ fontSize: '0.85rem' }}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     ))
                   ) : (
@@ -1435,11 +1471,11 @@ export default function UniversityPortalPage() {
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button
                           type="button"
-                          className="portal-btn portal-btn--secondary"
-                          onClick={() => setEditingUserId(stu.id)}
+                          className="portal-btn portal-btn--primary"
+                          onClick={() => startEditingUser(stu)}
                           style={{ fontSize: '0.85rem', padding: '0.4rem 0.7rem' }}
                         >
-                          Change password
+                          Edit
                         </button>
                         <button
                           type="button"
@@ -1450,42 +1486,6 @@ export default function UniversityPortalPage() {
                           Delete
                         </button>
                       </div>
-                      {editingUserId === stu.id && (
-                        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
-                          <div className="portal-field" style={{ marginBottom: '0.5rem' }}>
-                            <label htmlFor={`edit-pass-${stu.id}`}>New password</label>
-                            <input
-                              id={`edit-pass-${stu.id}`}
-                              type="password"
-                              value={editingPassword}
-                              onChange={(e) => setEditingPassword(e.target.value)}
-                              placeholder="Enter new password"
-                            />
-                          </div>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button
-                              type="button"
-                              className="portal-btn portal-btn--primary"
-                              onClick={() => updateUserPassword(stu.id, editingPassword)}
-                              disabled={!editingPassword.trim()}
-                              style={{ fontSize: '0.85rem' }}
-                            >
-                              Update
-                            </button>
-                            <button
-                              type="button"
-                              className="portal-btn portal-btn--ghost"
-                              onClick={() => {
-                                setEditingUserId(null)
-                                setEditingPassword('')
-                              }}
-                              style={{ fontSize: '0.85rem' }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))
                 ) : (
@@ -1496,6 +1496,116 @@ export default function UniversityPortalPage() {
           </>
         ) : (
           <div className="portal-empty">User management is available to university admins and advisors.</div>
+        )}
+
+        {/* Edit User Modal */}
+        {editingUser && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+          }}>
+            <div style={{
+              background: 'var(--surface)', borderRadius: '12px', padding: '1.5rem', width: '90%', maxWidth: '500px',
+              maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+            }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>
+                Edit User: {editingUser.username}
+              </h3>
+
+              {/* Photo */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: 72, height: 72, borderRadius: '50%', border: '2px dashed var(--border)',
+                  overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--background)',
+                }}>
+                  {editUserForm.photoData
+                    ? <img src={editUserForm.photoData} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ fontSize: '1.8rem' }}>👤</span>
+                  }
+                </div>
+                <div>
+                  <label htmlFor="edit-user-photo" className="portal-btn portal-btn--secondary" style={{ cursor: 'pointer', fontSize: '0.85rem' }}>
+                    {editUserForm.photoData ? 'Change photo' : 'Upload photo'}
+                  </label>
+                  <input id="edit-user-photo" type="file" accept="image/*" onChange={handleEditUserPhotoChange} style={{ display: 'none' }} />
+                  {editUserForm.photoData && (
+                    <button
+                      type="button"
+                      className="portal-btn portal-btn--ghost"
+                      onClick={() => setEditUserForm((prev) => ({ ...prev, photoData: '' }))}
+                      style={{ marginLeft: '0.5rem', fontSize: '0.8rem' }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="edit-user-fullname">Full Name</label>
+                <input
+                  id="edit-user-fullname"
+                  value={editUserForm.fullName}
+                  onChange={(e) => setEditUserForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                  placeholder="Enter full name"
+                />
+              </div>
+
+              <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="edit-user-email">Email</label>
+                <input
+                  id="edit-user-email"
+                  type="email"
+                  value={editUserForm.email}
+                  onChange={(e) => setEditUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter email"
+                />
+              </div>
+
+              {editingUser.role === 'STUDENT' && (
+                <>
+                  <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                    <label htmlFor="edit-user-studentid">Student ID</label>
+                    <input
+                      id="edit-user-studentid"
+                      value={editUserForm.studentId}
+                      onChange={(e) => setEditUserForm((prev) => ({ ...prev, studentId: e.target.value }))}
+                      placeholder="Enter student ID"
+                    />
+                  </div>
+                  <div className="portal-field" style={{ marginBottom: '0.75rem' }}>
+                    <label htmlFor="edit-user-course">Course Name</label>
+                    <input
+                      id="edit-user-course"
+                      value={editUserForm.courseName}
+                      onChange={(e) => setEditUserForm((prev) => ({ ...prev, courseName: e.target.value }))}
+                      placeholder="Enter course name"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="portal-field" style={{ marginBottom: '1rem' }}>
+                <label htmlFor="edit-user-password">New Password (leave blank to keep current)</label>
+                <input
+                  id="edit-user-password"
+                  type="password"
+                  value={editUserForm.password}
+                  onChange={(e) => setEditUserForm((prev) => ({ ...prev, password: e.target.value }))}
+                  placeholder="Enter new password"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="portal-btn portal-btn--ghost" onClick={cancelEditingUser}>
+                  Cancel
+                </button>
+                <button type="button" className="portal-btn portal-btn--primary" onClick={saveUserChanges}>
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </section>
       )}

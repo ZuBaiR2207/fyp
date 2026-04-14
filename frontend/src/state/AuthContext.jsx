@@ -93,7 +93,7 @@ export function AuthProvider({ children }) {
       window.clearInterval(timer)
       activityEvents.forEach((eventName) => window.removeEventListener(eventName, refreshActivity))
     }
-  }, [state.username, state.password, state.role])
+  }, [state.token, state.role])
 
   const value = useMemo(() => {
     return {
