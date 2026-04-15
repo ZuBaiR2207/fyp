@@ -118,7 +118,7 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('STUDENT', 'UNIVERSITY_ADMIN', 'SUPERVISOR', 'ACCREDITATION_BODY')")
     @Transactional(readOnly = true)
     public ResponseEntity<ThesisResponse> getThesis(
-            @PathVariable String thesisId,
+            @PathVariable("thesisId") String thesisId,
             Authentication authentication
     ) {
         return thesisRepository.findById(thesisId)
@@ -146,9 +146,9 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('STUDENT', 'UNIVERSITY_ADMIN', 'SUPERVISOR', 'ACCREDITATION_BODY')")
     @Transactional(readOnly = true)
     public List<ThesisResponse> listTheses(
-            @RequestParam(required = false) String supervisorUsername,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String programId,
+            @RequestParam(value = "supervisorUsername", required = false) String supervisorUsername,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "programId", required = false) String programId,
             Authentication authentication
     ) {
         String username = authentication.getName();
@@ -193,7 +193,7 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('STUDENT', 'UNIVERSITY_ADMIN', 'SUPERVISOR')")
     @Transactional
     public ResponseEntity<ThesisResponse> updateThesis(
-            @PathVariable String thesisId,
+            @PathVariable("thesisId") String thesisId,
             @RequestBody @Valid UpdateThesisRequest request,
             Authentication authentication
     ) {
@@ -234,7 +234,7 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('UNIVERSITY_ADMIN', 'SUPERVISOR')")
     @Transactional
     public ResponseEntity<MilestoneResponse> addMilestone(
-            @PathVariable String thesisId,
+            @PathVariable("thesisId") String thesisId,
             @RequestBody @Valid CreateMilestoneRequest request,
             Authentication authentication
     ) {
@@ -264,7 +264,7 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('STUDENT', 'UNIVERSITY_ADMIN', 'SUPERVISOR', 'ACCREDITATION_BODY')")
     @Transactional(readOnly = true)
     public ResponseEntity<List<MilestoneResponse>> getMilestones(
-            @PathVariable String thesisId,
+            @PathVariable("thesisId") String thesisId,
             Authentication authentication
     ) {
         return thesisRepository.findById(thesisId)
@@ -286,8 +286,8 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('STUDENT', 'UNIVERSITY_ADMIN', 'SUPERVISOR')")
     @Transactional
     public ResponseEntity<MilestoneResponse> updateMilestone(
-            @PathVariable String thesisId,
-            @PathVariable String milestoneId,
+            @PathVariable("thesisId") String thesisId,
+            @PathVariable("milestoneId") String milestoneId,
             @RequestBody @Valid UpdateMilestoneRequest request,
             Authentication authentication
     ) {
@@ -341,7 +341,7 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('STUDENT', 'UNIVERSITY_ADMIN', 'SUPERVISOR')")
     @Transactional
     public ResponseEntity<SubmissionResponse> createSubmission(
-            @PathVariable String thesisId,
+            @PathVariable("thesisId") String thesisId,
             @RequestBody @Valid CreateSubmissionRequest request,
             Authentication authentication
     ) {
@@ -392,8 +392,8 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('STUDENT', 'UNIVERSITY_ADMIN', 'SUPERVISOR', 'ACCREDITATION_BODY')")
     @Transactional(readOnly = true)
     public ResponseEntity<List<SubmissionResponse>> getSubmissions(
-            @PathVariable String thesisId,
-            @RequestParam(required = false) String type,
+            @PathVariable("thesisId") String thesisId,
+            @RequestParam(value = "type", required = false) String type,
             Authentication authentication
     ) {
         return thesisRepository.findById(thesisId)
@@ -422,8 +422,8 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('UNIVERSITY_ADMIN', 'SUPERVISOR')")
     @Transactional
     public ResponseEntity<SubmissionResponse> reviewSubmission(
-            @PathVariable String thesisId,
-            @PathVariable String submissionId,
+            @PathVariable("thesisId") String thesisId,
+            @PathVariable("submissionId") String submissionId,
             @RequestBody @Valid ReviewSubmissionRequest request,
             Authentication authentication
     ) {
@@ -455,7 +455,7 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('UNIVERSITY_ADMIN', 'SUPERVISOR')")
     @Transactional
     public ResponseEntity<DefenseResponse> scheduleDefense(
-            @PathVariable String thesisId,
+            @PathVariable("thesisId") String thesisId,
             @RequestBody @Valid CreateDefenseRequest request,
             Authentication authentication
     ) {
@@ -497,7 +497,7 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('STUDENT', 'UNIVERSITY_ADMIN', 'SUPERVISOR', 'ACCREDITATION_BODY')")
     @Transactional(readOnly = true)
     public ResponseEntity<DefenseResponse> getDefense(
-            @PathVariable String thesisId,
+            @PathVariable("thesisId") String thesisId,
             Authentication authentication
     ) {
         var optionalThesis = thesisRepository.findById(thesisId)
@@ -521,7 +521,7 @@ public class ThesisController {
     @PreAuthorize("hasAnyRole('UNIVERSITY_ADMIN', 'SUPERVISOR')")
     @Transactional
     public ResponseEntity<DefenseResponse> updateDefense(
-            @PathVariable String thesisId,
+            @PathVariable("thesisId") String thesisId,
             @RequestBody @Valid UpdateDefenseRequest request,
             Authentication authentication
     ) {
