@@ -225,6 +225,37 @@ public class ThesisController {
             .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Assign supervisor to thesis (Admin only)
+     */
+    @PostMapping("/{thesisId}/assign-supervisor")
+    @PreAuthorize("hasRole('UNIVERSITY_ADMIN')")
+    @Transactional
+    public ResponseEntity<ThesisResponse> assignSupervisor(
+            @PathVariable("thesisId") String thesisId,
+            @RequestParam("supervisorUsername") String supervisorUsername,
+            Authentication authentication
+    ) {
+        return thesisRepository.findById(thesisId)
+            .map(thesis -> {
+                thesis.setSupervisorUsername(supervisorUsername);
+                if (thesis.getStatus() == ThesisStatus.TOPIC_PROPOSED) {
+                    thesis.setStatus(ThesisStatus.TOPIC_APPROVED);
+                }
+                Thesis saved = thesisRepository.save(thesis);
+                
+                notificationClient.publishStatusEvent(new StatusEventRequest(
+                    "SUPERVISOR_ASSIGNED",
+                    "Supervisor " + supervisorUsername + " assigned to thesis: " + thesis.getTitle(),
+                    saved.getId(),
+                    Instant.now()
+                ));
+                
+                return ResponseEntity.ok(toThesisResponse(saved));
+            })
+            .orElse(ResponseEntity.notFound().build());
+    }
+
     // ===================== MILESTONE ENDPOINTS =====================
 
     /**
