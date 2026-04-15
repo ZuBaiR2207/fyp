@@ -21,6 +21,8 @@ public class DefaultUsers implements CommandLineRunner {
   @Override
   public void run(String... args) {
     // University administrators
+    seedIfMissing("zubair.admin", "zubair22", UserRole.UNIVERSITY_ADMIN,
+     "Zubair Sheikh", "zubair.admin@gmail.com", null, null);
     seedIfMissing("admin1", "admin123", UserRole.UNIVERSITY_ADMIN,
         "Dr. Sarah Chen", "sarah.chen@university.edu", null, null);
     seedIfMissing("admin2", "admin123", UserRole.UNIVERSITY_ADMIN,
