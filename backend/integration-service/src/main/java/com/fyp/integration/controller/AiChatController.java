@@ -34,7 +34,7 @@ public class AiChatController {
     return new ChatResponse(
         result.reply(),
         result.fallback(),
-      result.fallback() ? "none" : "spring-ai-anthropic",
+      result.fallback() ? "none" : "google-gemini",
         Instant.now()
     );
   }
