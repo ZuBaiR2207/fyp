@@ -97,7 +97,7 @@ public class ReportsController {
   private SupervisionSummary fetchSupervisionSummary(String programId) {
     try {
       return supervisionClient.get()
-          .uri(uriBuilder -> uriBuilder.path("/internal/reporting/summary")
+          .uri(uriBuilder -> uriBuilder.path("/api/internal/reporting/summary")
               .queryParamIfPresent("programId", Optional.ofNullable(programId).filter(value -> !value.isBlank()))
               .build())
           .retrieve()
