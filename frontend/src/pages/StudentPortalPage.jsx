@@ -32,6 +32,9 @@ const STATUS_COLORS = {
   SUBMITTED: '#8b5cf6',
   APPROVED: '#10b981',
   REVISION_REQUIRED: '#ef4444',
+  // Session status colors
+  ACTIVE: '#22c55e',
+  PLANNED: '#6366f1',
 }
 
 function ProgressDonut({ value, label, helper, stroke }) {
@@ -432,9 +435,9 @@ export default function StudentPortalPage() {
       .sort((a, b) => a.feedbackDeadlineAt.localeCompare(b.feedbackDeadlineAt))[0]?.feedbackDeadlineAt
 
     const statusBreakdown = [
-      { label: 'Planned', value: byStatus.PLANNED, color: '#c17c74' },
-      { label: 'Active', value: byStatus.ACTIVE, color: '#d64545' },
-      { label: 'Completed', value: byStatus.COMPLETED, color: '#6f8b5d' },
+      { label: 'Planned', value: byStatus.PLANNED, color: '#6366f1' },
+      { label: 'Active', value: byStatus.ACTIVE, color: '#22c55e' },
+      { label: 'Completed', value: byStatus.COMPLETED, color: '#059669' },
     ].map((item) => ({
       ...item,
       percent: total ? Math.round((item.value / total) * 100) : 0,
@@ -1118,7 +1121,7 @@ export default function StudentPortalPage() {
                     <div className="portal-card__title">{s.programName ?? 'Program'}</div>
                     <div className="portal-card__meta">Supervisor · {s.supervisorUsername}</div>
                   </div>
-                  <span className="portal-badge">{s.status}</span>
+                  <span className="portal-badge" style={{ background: STATUS_COLORS[s.status] || '#6b7280' }}>{s.status}</span>
                 </div>
                 <div className="portal-card__meta" style={{ marginTop: '0.5rem' }}>
                   Scheduled {s.scheduledAt}

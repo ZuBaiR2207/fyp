@@ -1058,13 +1058,13 @@ export default function UniversityPortalPage() {
             </div>
             <div style={{ marginTop: '1rem', fontSize: '0.8rem', opacity: 0.8 }}>All supervision sessions</div>
           </div>
-          <div className="portal-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', border: 'none' }}>
+          <div className="portal-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', color: 'white', border: 'none' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>Active</div>
                 <div style={{ fontSize: '2.5rem', fontWeight: 700, lineHeight: 1 }}>{dashboard.active}</div>
               </div>
-              <div style={{ fontSize: '2rem', opacity: 0.3 }}>🔥</div>
+              <div style={{ fontSize: '2rem', opacity: 0.3 }}>🟢</div>
             </div>
             <div style={{ marginTop: '1rem', fontSize: '0.8rem', opacity: 0.8 }}>Currently in progress</div>
           </div>
@@ -1100,8 +1100,8 @@ export default function UniversityPortalPage() {
                   labels: ['Completed', 'Active', 'Planned'],
                   datasets: [{
                     data: [dashboard.completed, dashboard.active, dashboard.planned],
-                    backgroundColor: ['#22c55e', '#f59e0b', '#6366f1'],
-                    borderColor: ['#16a34a', '#d97706', '#4f46e5'],
+                    backgroundColor: ['#3b82f6', '#22c55e', '#6366f1'],
+                    borderColor: ['#2563eb', '#16a34a', '#4f46e5'],
                     borderWidth: 2,
                   }],
                 }}
@@ -1143,9 +1143,9 @@ export default function UniversityPortalPage() {
                   <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#22c55e' }}>{dashboard.completed}</div>
                   <div style={{ fontSize: '0.75rem', color: '#16a34a' }}>Completed</div>
                 </div>
-                <div style={{ textAlign: 'center', padding: '0.75rem', background: '#fffbeb', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>{dashboard.active}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#d97706' }}>Active</div>
+                <div style={{ textAlign: 'center', padding: '0.75rem', background: '#f0fdf4', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#22c55e' }}>{dashboard.active}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#16a34a' }}>Active</div>
                 </div>
                 <div style={{ textAlign: 'center', padding: '0.75rem', background: '#eef2ff', borderRadius: '12px' }}>
                   <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#6366f1' }}>{dashboard.planned}</div>
@@ -1513,7 +1513,7 @@ export default function UniversityPortalPage() {
                 <div style={{ flex: 1 }}>
                   <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem' }}>{selectedThesis.title}</h3>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                    <span className="portal-badge" style={{ background: THESIS_STATUS_COLORS[selectedThesis.status] || '#6b7280' }}>
+                    <span className="portal-badge" style={{ background: THESIS_STATUS_COLORS[selectedThesis.status] || '#6b7280', color: 'white' }}>
                       {selectedThesis.status?.replace(/_/g, ' ')}
                     </span>
                     {selectedThesis.programName && <span className="portal-badge" style={{ background: 'var(--surface-muted)', color: 'var(--text)' }}>{selectedThesis.programName}</span>}
@@ -1621,7 +1621,7 @@ export default function UniversityPortalPage() {
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                             <strong>{m.name}</strong>
-                            <span className="portal-badge" style={{ background: MILESTONE_STATUS_COLORS[m.status] || '#6b7280', fontSize: '0.7rem' }}>
+                            <span className="portal-badge" style={{ background: MILESTONE_STATUS_COLORS[m.status] || '#6b7280', color: 'white', fontSize: '0.7rem' }}>
                               {m.status?.replace(/_/g, ' ')}
                             </span>
                             {m.weightPercentage > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{m.weightPercentage}%</span>}
@@ -1664,7 +1664,7 @@ export default function UniversityPortalPage() {
                   {thesisSubmissions.map((sub) => (
                     <div key={sub.id} className="portal-card">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <span className="portal-badge" style={{ background: '#8b5cf6' }}>{sub.type?.replace(/_/g, ' ')}</span>
+                        <span className="portal-badge" style={{ background: '#8b5cf6', color: 'white' }}>{sub.type?.replace(/_/g, ' ')}</span>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>v{sub.versionNumber}</span>
                       </div>
                       <div className="portal-card__title">{sub.title}</div>
@@ -1716,7 +1716,7 @@ export default function UniversityPortalPage() {
                         {thesis.supervisorUsername && <div className="portal-card__meta">Supervisor: {thesis.supervisorUsername}</div>}
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span className="portal-badge" style={{ background: THESIS_STATUS_COLORS[thesis.status] || '#6b7280' }}>
+                        <span className="portal-badge" style={{ background: THESIS_STATUS_COLORS[thesis.status] || '#6b7280', color: 'white' }}>
                           {thesis.status?.replace(/_/g, ' ')}
                         </span>
                         <div style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>{thesis.progress || 0}% complete</div>
@@ -1846,7 +1846,7 @@ export default function UniversityPortalPage() {
           <div style={{
             padding: '1.25rem',
             borderRadius: '16px',
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
             color: 'white',
           }}>
             <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.35rem' }}>Active</div>
@@ -2235,8 +2235,8 @@ export default function UniversityPortalPage() {
                     padding: '0.35rem 0.75rem',
                     borderRadius: '999px',
                     fontWeight: 600,
-                    background: s.status === 'COMPLETED' ? '#dcfce7' : s.status === 'ACTIVE' ? '#fef3c7' : '#e0e7ff',
-                    color: s.status === 'COMPLETED' ? '#16a34a' : s.status === 'ACTIVE' ? '#d97706' : '#4f46e5',
+                    background: s.status === 'COMPLETED' ? '#dbeafe' : s.status === 'ACTIVE' ? '#dcfce7' : '#e0e7ff',
+                    color: s.status === 'COMPLETED' ? '#2563eb' : s.status === 'ACTIVE' ? '#16a34a' : '#4f46e5',
                   }}>
                     {s.status === 'COMPLETED' ? '✓ ' : s.status === 'ACTIVE' ? '● ' : '○ '}{s.status}
                   </span>
@@ -2915,8 +2915,8 @@ export default function UniversityPortalPage() {
                           reportSummary.metrics?.sessionsActive ?? 0,
                           reportSummary.metrics?.sessionsPlanned ?? 0,
                         ],
-                        backgroundColor: ['#22c55e', '#f59e0b', '#6366f1'],
-                        borderColor: ['#16a34a', '#d97706', '#4f46e5'],
+                        backgroundColor: ['#3b82f6', '#22c55e', '#6366f1'],
+                        borderColor: ['#2563eb', '#16a34a', '#4f46e5'],
                         borderWidth: 2,
                       }],
                     }}
@@ -2989,7 +2989,7 @@ export default function UniversityPortalPage() {
                         {
                           label: 'Active',
                           data: (reportSummary.breakdown ?? []).map(p => p.sessionsActive ?? 0),
-                          backgroundColor: '#f59e0b',
+                          backgroundColor: '#22c55e',
                           borderRadius: 4,
                         },
                       ],
