@@ -96,6 +96,7 @@ export default function StudentPortalPage() {
   const [paymentAmount, setPaymentAmount] = useState('100')
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentError, setPaymentError] = useState('')
+  const [paymentHistory, setPaymentHistory] = useState([])
   const [activeSection, setActiveSection] = useState('dashboard')
   const [myProfile, setMyProfile] = useState(null)
   const username = myProfile?.username || ''
@@ -161,6 +162,25 @@ export default function StudentPortalPage() {
     apiFetch(`${SUPERVISION_URL}/api/programs`, auth)
       .then((progs) => setPrograms(Array.isArray(progs) ? progs : []))
       .catch(console.error)
+
+    // Confirm payment if redirected from Stripe success
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('payment') === 'success') {
+      const sid = sessionStorage.getItem('stripe_session_id')
+      if (sid) {
+        apiFetch(`${INTEGRATION_URL}/api/integrations/payment/confirm`, auth, {
+          method: 'POST',
+          body: JSON.stringify({ sessionId: sid })
+        }).catch(console.error)
+        sessionStorage.removeItem('stripe_session_id')
+      }
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
+    // Load payment history
+    apiFetch(`${INTEGRATION_URL}/api/integrations/payment/transactions`, auth)
+      .then((data) => setPaymentHistory(Array.isArray(data) ? data : []))
+      .catch(console.error)
   }, [token])
 
   useEffect(() => {
@@ -202,11 +222,13 @@ export default function StudentPortalPage() {
         body: JSON.stringify({
           amount: amountValue,
           currency: 'myr',
-          description: 'Student portal payment'
+          description: 'Student portal payment',
+          username: username || 'unknown'
         })
       })
 
       if (response?.url) {
+        if (response.sessionId) sessionStorage.setItem('stripe_session_id', response.sessionId)
         window.location.href = response.url
       } else {
         setPaymentError('Unable to create payment session. Please try again.')
@@ -678,6 +700,48 @@ export default function StudentPortalPage() {
             <div className="portal-card__meta">Secure Malaysian payment via Stripe Checkout.</div>
           </div>
         </div>
+
+        {/* Transaction History */}
+        {paymentHistory.length > 0 && (
+        <div style={{ marginTop: '1.25rem' }}>
+          <div className="portal-section__header" style={{ marginBottom: '0.85rem' }}>
+            <h3 className="portal-section__title" style={{ fontSize: '1.05rem' }}>Transaction history</h3>
+            <p className="portal-section__hint">Your recent payment records.</p>
+          </div>
+          <div className="portal-card" style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                  <th style={{ padding: '0.6rem 0.75rem' }}>Date</th>
+                  <th style={{ padding: '0.6rem 0.75rem' }}>Description</th>
+                  <th style={{ padding: '0.6rem 0.75rem' }}>Amount</th>
+                  <th style={{ padding: '0.6rem 0.75rem' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paymentHistory.map((txn) => (
+                  <tr key={txn.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '0.6rem 0.75rem', whiteSpace: 'nowrap' }}>
+                      {new Date(txn.createdAt).toLocaleDateString('en-MY', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </td>
+                    <td style={{ padding: '0.6rem 0.75rem' }}>{txn.description}</td>
+                    <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600 }}>
+                      {txn.currency} {txn.amount.toFixed(2)}
+                    </td>
+                    <td style={{ padding: '0.6rem 0.75rem' }}>
+                      <span className="portal-badge" style={{
+                        background: txn.status === 'COMPLETED' ? '#22c55e' : txn.status === 'PENDING' ? '#f59e0b' : '#ef4444'
+                      }}>
+                        {txn.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        )}
 
         <div style={{ marginTop: '1.25rem' }}>
           <div className="portal-section__header" style={{ marginBottom: '0.85rem' }}>

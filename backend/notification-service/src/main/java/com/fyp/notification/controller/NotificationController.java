@@ -36,6 +36,8 @@ public class NotificationController {
   private final ReminderRepository reminderRepository;
   private final SimpMessagingTemplate messagingTemplate;
   private final CopyOnWriteArrayList<ChatMessageDto> chatMessages = new CopyOnWriteArrayList<>();
+  private static final int STATUS_EVENT_LIMIT = 50;
+  private final CopyOnWriteArrayList<StatusEventDto> statusEvents = new CopyOnWriteArrayList<>();
 
   public NotificationController(
       AnnouncementRepository announcementRepository,
@@ -116,12 +118,22 @@ public class NotificationController {
 
   @PostMapping("/internal/events/status")
   public void publishStatus(@RequestBody @Valid StatusEventRequest request) {
-    messagingTemplate.convertAndSend("/topic/status", new StatusEventDto(
+    StatusEventDto event = new StatusEventDto(
         request.type(),
         request.message(),
         request.sessionId(),
         request.timestamp()
-    ));
+    );
+    statusEvents.add(0, event);
+    while (statusEvents.size() > STATUS_EVENT_LIMIT) {
+      statusEvents.remove(statusEvents.size() - 1);
+    }
+    messagingTemplate.convertAndSend("/topic/status", event);
+  }
+
+  @GetMapping("/api/events/status")
+  public List<StatusEventDto> listStatusEvents() {
+    return new ArrayList<>(statusEvents);
   }
 
   @GetMapping("/api/chat/messages")

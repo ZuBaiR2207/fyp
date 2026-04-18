@@ -3,11 +3,22 @@ import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 
 const WS_URL = import.meta.env.VITE_NOTIFICATION_WS_URL ?? 'http://localhost:8083/ws'
+const NOTIFICATION_URL = import.meta.env.VITE_NOTIFICATION_URL ?? 'http://localhost:8083'
 
 export function useRealtime() {
   const [latestReminders, setLatestReminders] = useState([])
   const [statusEvents, setStatusEvents] = useState([])
   const [chatMessages, setChatMessages] = useState([])
+
+  // Load persisted status events on mount
+  useEffect(() => {
+    const auth = JSON.parse(localStorage.getItem('fyp_auth_jwt') || '{}')
+    const headers = auth.token ? { Authorization: `Bearer ${auth.token}` } : {}
+    fetch(`${NOTIFICATION_URL}/api/events/status`, { headers })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => { if (Array.isArray(data) && data.length) setStatusEvents(data) })
+      .catch(() => {})
+  }, [])
 
   const client = useMemo(() => {
     return new Client({

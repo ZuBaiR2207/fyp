@@ -1,9 +1,11 @@
 package com.fyp.integration.controller;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +25,10 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 
+import com.fyp.integration.model.PaymentTransaction;
+import com.fyp.integration.model.PaymentTransaction.PaymentStatus;
+import com.fyp.integration.repo.PaymentTransactionRepository;
+
 @RestController
 @RequestMapping("/api/integrations")
 public class IntegrationsController {
@@ -31,12 +37,14 @@ public class IntegrationsController {
   private final String stripeSecretKey;
   private final String stripeSuccessUrl;
   private final String stripeCancelUrl;
+  private final PaymentTransactionRepository transactionRepository;
 
   public IntegrationsController(
       @Value("${integrations.open-library.base-url:https://openlibrary.org}") String openLibraryBaseUrl,
       @Value("${stripe.secret-key:}") String stripeSecretKey,
-      @Value("${stripe.success-url:http://localhost:5174/?payment=success}") String stripeSuccessUrl,
-      @Value("${stripe.cancel-url:http://localhost:5174/?payment=cancel}") String stripeCancelUrl
+      @Value("${stripe.success-url:http://localhost:5173/?payment=success}") String stripeSuccessUrl,
+      @Value("${stripe.cancel-url:http://localhost:5173/?payment=cancel}") String stripeCancelUrl,
+      PaymentTransactionRepository transactionRepository
   ) {
     this.openLibraryClient = RestClient.builder()
         .baseUrl(openLibraryBaseUrl)
@@ -45,6 +53,7 @@ public class IntegrationsController {
     this.stripeSecretKey = stripeSecretKey;
     this.stripeSuccessUrl = stripeSuccessUrl;
     this.stripeCancelUrl = stripeCancelUrl;
+    this.transactionRepository = transactionRepository;
     if (stripeSecretKey != null && !stripeSecretKey.isBlank()) {
       Stripe.apiKey = stripeSecretKey;
     }
@@ -201,10 +210,63 @@ public class IntegrationsController {
           .build();
 
       Session session = Session.create(params);
+
+      // Save transaction record
+      PaymentTransaction txn = new PaymentTransaction();
+      txn.setStripeSessionId(session.getId());
+      txn.setUsername(request.username() != null ? request.username() : "unknown");
+      txn.setAmount(amount);
+      txn.setCurrency(currency.toUpperCase());
+      txn.setDescription(description);
+      txn.setStatus(PaymentStatus.PENDING);
+      txn.setCreatedAt(Instant.now());
+      transactionRepository.save(txn);
+
       return new CheckoutSessionResponse(session.getUrl(), session.getId());
     } catch (StripeException e) {
       throw new RuntimeException("Stripe checkout creation failed: " + e.getMessage(), e);
     }
+  }
+
+  @PostMapping("/payment/confirm")
+  public Map<String, String> confirmPayment(@RequestBody Map<String, String> body) {
+    String sessionId = body.get("sessionId");
+    if (sessionId == null || sessionId.isBlank()) {
+      return Map.of("status", "error", "message", "Missing sessionId");
+    }
+    transactionRepository.findByStripeSessionId(sessionId).ifPresent(txn -> {
+      txn.setStatus(PaymentStatus.COMPLETED);
+      txn.setCompletedAt(Instant.now());
+      transactionRepository.save(txn);
+    });
+    return Map.of("status", "ok");
+  }
+
+  @GetMapping("/payment/transactions")
+  public List<TransactionDto> listAllTransactions() {
+    return transactionRepository.findAllByOrderByCreatedAtDesc().stream()
+        .map(this::toTransactionDto)
+        .toList();
+  }
+
+  @GetMapping("/payment/transactions/user")
+  public List<TransactionDto> listUserTransactions(@RequestParam String username) {
+    return transactionRepository.findByUsernameOrderByCreatedAtDesc(username).stream()
+        .map(this::toTransactionDto)
+        .toList();
+  }
+
+  private TransactionDto toTransactionDto(PaymentTransaction txn) {
+    return new TransactionDto(
+        txn.getId().toString(),
+        txn.getUsername(),
+        txn.getAmount(),
+        txn.getCurrency(),
+        txn.getDescription(),
+        txn.getStatus().name(),
+        txn.getCreatedAt().toString(),
+        txn.getCompletedAt() != null ? txn.getCompletedAt().toString() : null
+    );
   }
 
   private List<LibraryRecord> fallbackLibrary(String query) {
@@ -285,9 +347,14 @@ public class IntegrationsController {
       String note
   ) {}
 
-  public record CheckoutSessionRequest(Double amount, String currency, String description) {}
+  public record CheckoutSessionRequest(Double amount, String currency, String description, String username) {}
 
   public record CheckoutSessionResponse(String url, String sessionId) {}
+
+  public record TransactionDto(
+      String id, String username, double amount, String currency,
+      String description, String status, String createdAt, String completedAt
+  ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record OpenLibrarySearchResponse(

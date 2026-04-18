@@ -43,6 +43,7 @@ const NAV = [
   { id: 'chat', label: 'Chat', icon: 'message' },
   { id: 'analytics', label: 'Analytics', icon: 'chart' },
   { id: 'integrations', label: 'Integrations', icon: 'search' },
+  { id: 'payments', label: 'Payments', icon: 'dollar' },
   { id: 'feed', label: 'Live status', icon: 'activity' },
 ]
 
@@ -134,6 +135,7 @@ export default function UniversityPortalPage() {
   const username = myProfile?.username || ''
   const [photoUploading, setPhotoUploading] = useState(false)
   const [announcements, setAnnouncements] = useState([])
+  const [paymentTransactions, setPaymentTransactions] = useState([])
   const [announcementDraft, setAnnouncementDraft] = useState({
     title: '',
     content: '',
@@ -701,6 +703,9 @@ export default function UniversityPortalPage() {
     fetchAnnouncements().catch(console.error)
     fetchTheses().catch(console.error) // Fetch theses for dashboard stats
     apiFetch(`${AUTH_URL}/api/auth/me`, auth).then(setMyProfile).catch(console.error)
+    apiFetch(`${INTEGRATION_URL}/api/integrations/payment/transactions`, auth)
+      .then((data) => setPaymentTransactions(Array.isArray(data) ? data : []))
+      .catch(console.error)
     if (role === 'UNIVERSITY_ADMIN') {
       fetchSupervisors()
     }
@@ -3284,6 +3289,78 @@ export default function UniversityPortalPage() {
             </div>
           </div>
         </div>
+      </section>
+      )}
+
+      {activeSection === 'payments' && (
+      <section className="portal-section">
+        <div className="portal-section__header">
+          <h2 className="portal-section__title">Payment transactions</h2>
+          <p className="portal-section__hint">All student payment records from Stripe Checkout</p>
+        </div>
+
+        {/* Summary cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="portal-card" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: '#fff' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{paymentTransactions.length}</div>
+            <div style={{ opacity: 0.9, fontSize: '0.85rem' }}>Total Transactions</div>
+          </div>
+          <div className="portal-card" style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', color: '#fff' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{paymentTransactions.filter(t => t.status === 'COMPLETED').length}</div>
+            <div style={{ opacity: 0.9, fontSize: '0.85rem' }}>Completed</div>
+          </div>
+          <div className="portal-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{paymentTransactions.filter(t => t.status === 'PENDING').length}</div>
+            <div style={{ opacity: 0.9, fontSize: '0.85rem' }}>Pending</div>
+          </div>
+          <div className="portal-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: '#fff' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+              MYR {paymentTransactions.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
+            </div>
+            <div style={{ opacity: 0.9, fontSize: '0.85rem' }}>Total Revenue</div>
+          </div>
+        </div>
+
+        {paymentTransactions.length ? (
+        <div className="portal-card" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                <th style={{ padding: '0.75rem' }}>Date</th>
+                <th style={{ padding: '0.75rem' }}>Student</th>
+                <th style={{ padding: '0.75rem' }}>Description</th>
+                <th style={{ padding: '0.75rem' }}>Amount</th>
+                <th style={{ padding: '0.75rem' }}>Status</th>
+                <th style={{ padding: '0.75rem' }}>Completed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paymentTransactions.map((txn) => (
+                <tr key={txn.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '0.75rem', whiteSpace: 'nowrap' }}>
+                    {new Date(txn.createdAt).toLocaleDateString('en-MY', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td style={{ padding: '0.75rem', fontWeight: 500 }}>{txn.username}</td>
+                  <td style={{ padding: '0.75rem' }}>{txn.description}</td>
+                  <td style={{ padding: '0.75rem', fontWeight: 600 }}>{txn.currency} {txn.amount.toFixed(2)}</td>
+                  <td style={{ padding: '0.75rem' }}>
+                    <span className="portal-badge" style={{
+                      background: txn.status === 'COMPLETED' ? '#22c55e' : txn.status === 'PENDING' ? '#f59e0b' : '#ef4444'
+                    }}>
+                      {txn.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '0.75rem', whiteSpace: 'nowrap' }}>
+                    {txn.completedAt ? new Date(txn.completedAt).toLocaleDateString('en-MY', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        ) : (
+          <div className="portal-empty">No payment transactions yet.</div>
+        )}
       </section>
       )}
 
