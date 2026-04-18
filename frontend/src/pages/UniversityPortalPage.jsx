@@ -3,6 +3,34 @@ import { useAuth } from '../state/AuthContext'
 import PortalLayout from '../components/PortalLayout.jsx'
 import { INTEGRATION_URL, NOTIFICATION_URL, REPORTING_URL, SUPERVISION_URL, apiFetch } from '../api/api'
 import { useRealtime } from '../hooks/useRealtime'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js'
+import { Bar, Doughnut, Line } from 'react-chartjs-2'
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
 const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? 'http://localhost:8081'
 
@@ -927,151 +955,284 @@ export default function UniversityPortalPage() {
       {activeSection === 'dashboard' && (
       <section className="portal-section">
         <div className="portal-section__header">
-          <h2 className="portal-section__title">Program overview</h2>
-          <p className="portal-section__hint">Session counts, tracked programs, and setup shortcuts</p>
+          <h2 className="portal-section__title">Dashboard Overview</h2>
+          <p className="portal-section__hint">Your command center for thesis supervision and program management</p>
         </div>
 
-        {/* ── My profile card ── */}
-        <div className="portal-panel" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <div style={{
-              width: 88, height: 88, borderRadius: '50%',
-              border: '3px solid var(--accent)',
-              overflow: 'hidden',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--surface-muted)',
-            }}>
-              {myProfile?.photoData
-                ? <img src={myProfile.photoData} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <span style={{ fontSize: '2.2rem' }}>👤</span>
-              }
-            </div>
-            <label
-              htmlFor="uni-photo-input"
-              title="Change photo"
-              style={{
-                position: 'absolute', bottom: 0, right: 0,
-                width: 26, height: 26, borderRadius: '50%',
-                background: 'var(--accent)', cursor: 'pointer',
+        {/* ── Welcome Banner with Profile ── */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '1.25rem',
+          padding: '1.75rem',
+          marginBottom: '1.5rem',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-50%',
+            right: '-10%',
+            width: '300px',
+            height: '300px',
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '50%',
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-30%',
+            right: '20%',
+            width: '150px',
+            height: '150px',
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: '50%',
+          }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{
+                width: 100, height: 100, borderRadius: '50%',
+                border: '4px solid rgba(255,255,255,0.8)',
+                overflow: 'hidden',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.8rem', color: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,.3)',
-                opacity: photoUploading ? 0.5 : 1,
-              }}
-            >
-              {photoUploading ? '…' : '✎'}
-            </label>
-            <input
-              id="uni-photo-input"
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleProfilePhotoChange}
-              disabled={photoUploading}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-h)', marginBottom: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {myProfile?.fullName ?? username}
+                background: 'rgba(255,255,255,0.2)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+              }}>
+                {myProfile?.photoData
+                  ? <img src={myProfile.photoData} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ fontSize: '2.5rem' }}>👤</span>
+                }
+              </div>
+              <label
+                htmlFor="uni-photo-input"
+                title="Change photo"
+                style={{
+                  position: 'absolute', bottom: 4, right: 4,
+                  width: 30, height: 30, borderRadius: '50%',
+                  background: 'white', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '0.85rem', color: '#667eea', boxShadow: '0 2px 8px rgba(0,0,0,.25)',
+                  opacity: photoUploading ? 0.5 : 1,
+                  transition: 'transform 0.2s ease',
+                }}
+              >
+                {photoUploading ? '...' : '✎'}
+              </label>
+              <input
+                id="uni-photo-input"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleProfilePhotoChange}
+                disabled={photoUploading}
+              />
             </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginBottom: '0.4rem' }}>@{username}</div>
-            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.82rem', padding: '0.15rem 0.55rem', borderRadius: '999px', background: 'var(--surface-muted)', color: 'var(--text-muted)' }}>
-                {role?.replace('_', ' ')}
-              </span>
-              {myProfile?.email && (
-                <a href={`mailto:${myProfile.email}`} style={{ fontSize: '0.82rem', color: 'var(--accent)', textDecoration: 'none' }}>✉ {myProfile.email}</a>
-              )}
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '0.25rem' }}>Welcome back,</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.35rem', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                {myProfile?.fullName ?? username}
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', padding: '0.3rem 0.75rem', borderRadius: '999px', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)' }}>
+                  {role?.replace('_', ' ')}
+                </span>
+                <span style={{ fontSize: '0.85rem', opacity: 0.9 }}>@{username}</span>
+                {myProfile?.email && (
+                  <a href={`mailto:${myProfile.email}`} style={{ fontSize: '0.85rem', color: 'white', textDecoration: 'none', opacity: 0.9 }}>
+                    ✉ {myProfile.email}
+                  </a>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="portal-stats">
-          <div className="portal-stat">
-            <div className="portal-stat__value">{dashboard.total}</div>
-            <div className="portal-stat__label">Total sessions</div>
-          </div>
-          <div className="portal-stat">
-            <div className="portal-stat__value">{dashboard.active}</div>
-            <div className="portal-stat__label">Active</div>
-          </div>
-          <div className="portal-stat">
-            <div className="portal-stat__value">{dashboard.completed}</div>
-            <div className="portal-stat__label">Completed</div>
-          </div>
-          <div className="portal-stat">
-            <div className="portal-stat__value">{programs.length}</div>
-            <div className="portal-stat__label">Programs tracked</div>
-          </div>
-        </div>
-        <div className="portal-card" style={{ marginTop: '1rem' }}>
-          <div className="portal-card__row" style={{ marginBottom: '0.5rem' }}>
-            <div className="portal-card__title">Thesis progress meter</div>
-            <div className="portal-card__meta">{dashboard.progressPercent}%</div>
-          </div>
-          <div style={{ height: '12px', borderRadius: '999px', background: 'var(--surface-muted)', overflow: 'hidden' }}>
-            <div
-              style={{
-                width: `${dashboard.progressPercent}%`,
-                height: '100%',
-                borderRadius: '999px',
-                background: 'linear-gradient(90deg, #d64545 0%, #8aaf7a 100%)',
-                transition: 'width 0.25s ease',
-              }}
-            />
-          </div>
-          <div className="portal-card__meta" style={{ marginTop: '0.6rem' }}>
-            Planned {dashboard.planned} · Active {dashboard.active} · Completed {dashboard.completed}
           </div>
         </div>
 
-        {/* Thesis Quick Access */}
-        <div className="portal-card" style={{ marginTop: '1rem' }}>
-          <div className="portal-card__row" style={{ marginBottom: '0.75rem' }}>
-            <div className="portal-card__title">📚 Thesis Management</div>
-            <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setActiveSection('theses')}>
-              View All →
+        {/* ── Statistics Cards ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="portal-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>Total Sessions</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 700, lineHeight: 1 }}>{dashboard.total}</div>
+              </div>
+              <div style={{ fontSize: '2rem', opacity: 0.3 }}>📊</div>
+            </div>
+            <div style={{ marginTop: '1rem', fontSize: '0.8rem', opacity: 0.8 }}>All supervision sessions</div>
+          </div>
+          <div className="portal-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', border: 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>Active</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 700, lineHeight: 1 }}>{dashboard.active}</div>
+              </div>
+              <div style={{ fontSize: '2rem', opacity: 0.3 }}>🔥</div>
+            </div>
+            <div style={{ marginTop: '1rem', fontSize: '0.8rem', opacity: 0.8 }}>Currently in progress</div>
+          </div>
+          <div className="portal-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white', border: 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>Completed</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 700, lineHeight: 1 }}>{dashboard.completed}</div>
+              </div>
+              <div style={{ fontSize: '2rem', opacity: 0.3 }}>✅</div>
+            </div>
+            <div style={{ marginTop: '1rem', fontSize: '0.8rem', opacity: 0.8 }}>Successfully finished</div>
+          </div>
+          <div className="portal-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white', border: 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>Programs</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 700, lineHeight: 1 }}>{programs.length}</div>
+              </div>
+              <div style={{ fontSize: '2rem', opacity: 0.3 }}>📚</div>
+            </div>
+            <div style={{ marginTop: '1rem', fontSize: '0.8rem', opacity: 0.8 }}>Active programs tracked</div>
+          </div>
+        </div>
+
+        {/* ── Progress Section with Chart ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <div className="portal-card" style={{ padding: '1.5rem' }}>
+            <div className="portal-card__title" style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Session Progress Overview</div>
+            <div style={{ height: '220px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Doughnut
+                data={{
+                  labels: ['Completed', 'Active', 'Planned'],
+                  datasets: [{
+                    data: [dashboard.completed, dashboard.active, dashboard.planned],
+                    backgroundColor: ['#22c55e', '#f59e0b', '#6366f1'],
+                    borderColor: ['#16a34a', '#d97706', '#4f46e5'],
+                    borderWidth: 2,
+                  }],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true } },
+                  },
+                  cutout: '65%',
+                }}
+              />
+            </div>
+          </div>
+          <div className="portal-card" style={{ padding: '1.5rem' }}>
+            <div className="portal-card__title" style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Completion Progress</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontWeight: 500, color: 'var(--text-h)' }}>Overall Progress</span>
+                  <span style={{ fontWeight: 700, color: dashboard.progressPercent >= 75 ? '#22c55e' : dashboard.progressPercent >= 50 ? '#f59e0b' : '#ef4444' }}>
+                    {dashboard.progressPercent}%
+                  </span>
+                </div>
+                <div style={{ height: '14px', borderRadius: '999px', background: '#e2e8f0', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${dashboard.progressPercent}%`,
+                    height: '100%',
+                    borderRadius: '999px',
+                    background: dashboard.progressPercent >= 75 ? 'linear-gradient(90deg, #22c55e, #16a34a)' :
+                                dashboard.progressPercent >= 50 ? 'linear-gradient(90deg, #f59e0b, #d97706)' :
+                                'linear-gradient(90deg, #ef4444, #dc2626)',
+                    transition: 'width 0.5s ease',
+                  }} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <div style={{ textAlign: 'center', padding: '0.75rem', background: '#f0fdf4', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#22c55e' }}>{dashboard.completed}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#16a34a' }}>Completed</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '0.75rem', background: '#fffbeb', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>{dashboard.active}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#d97706' }}>Active</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '0.75rem', background: '#eef2ff', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#6366f1' }}>{dashboard.planned}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#4f46e5' }}>Planned</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Thesis Quick Access Card ── */}
+        <div className="portal-card" style={{ padding: '1.5rem', marginBottom: '1.5rem', background: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-h)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>📚</span> Thesis Management
+              </div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                Review student theses, milestones, and defense schedules
+              </div>
+            </div>
+            <button type="button" className="portal-btn portal-btn--primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => setActiveSection('theses')}>
+              View All Theses <span>→</span>
             </button>
           </div>
-          <div className="portal-card__meta">
-            Review student theses, provide milestone feedback, and manage defense schedules.
-          </div>
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.85rem', flexWrap: 'wrap' }}>
-            <div style={{ textAlign: 'center', padding: '0.5rem 1rem', background: 'var(--surface-muted)', borderRadius: '8px' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent)' }}>{theses.length}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Theses</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: '2rem', fontWeight: 700, color: '#6366f1' }}>{theses.length}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Total Theses</div>
             </div>
-            <div style={{ textAlign: 'center', padding: '0.5rem 1rem', background: 'var(--surface-muted)', borderRadius: '8px' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b' }}>{theses.filter(t => t.status?.includes('REVIEW') || t.status?.includes('SUBMITTED')).length}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Pending Review</div>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: '2rem', fontWeight: 700, color: '#f59e0b' }}>{theses.filter(t => t.status?.includes('REVIEW') || t.status?.includes('SUBMITTED')).length}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Pending Review</div>
             </div>
-            <div style={{ textAlign: 'center', padding: '0.5rem 1rem', background: 'var(--surface-muted)', borderRadius: '8px' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#22c55e' }}>{theses.filter(t => t.status === 'COMPLETED').length}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Completed</div>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: '2rem', fontWeight: 700, color: '#22c55e' }}>{theses.filter(t => t.status === 'COMPLETED').length}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Completed</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: '2rem', fontWeight: 700, color: '#ec4899' }}>{theses.filter(t => t.status === 'DEFENSE_SCHEDULED').length}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Defense Scheduled</div>
             </div>
           </div>
         </div>
 
         <div className="portal-grid" style={{ marginTop: '1rem' }}>
-          <div className="portal-card">
-            <div className="portal-card__title">Program catalog</div>
-            <div className="portal-card__meta" style={{ marginBottom: '0.75rem' }}>
-              Use this list when logging supervision sessions.
+          <div className="portal-card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '1.25rem' }}>🎓</span>
+              <div className="portal-card__title" style={{ fontSize: '1.05rem' }}>Program Catalog</div>
+            </div>
+            <div className="portal-card__meta" style={{ marginBottom: '1rem' }}>
+              Available programs for supervision sessions
             </div>
             {programs.length ? (
-              <div style={{ display: 'grid', gap: '0.55rem' }}>
-                {programs.slice(0, 6).map((program) => (
-                  <div key={program.id} className="portal-card__row">
-                    <span className="portal-card__title" style={{ fontSize: '0.95rem' }}>{program.name}</span>
-                    <span className="portal-card__meta">{program.id}</span>
+              <div style={{ display: 'grid', gap: '0.65rem' }}>
+                {programs.slice(0, 6).map((program, idx) => (
+                  <div key={program.id} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '0.75rem 1rem',
+                    background: idx % 2 === 0 ? '#f8fafc' : 'white',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                  }}>
+                    <span style={{ fontWeight: 500, color: 'var(--text-h)' }}>{program.name}</span>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontFamily: 'monospace', background: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{program.id}</span>
                   </div>
                 ))}
+                {programs.length > 6 && (
+                  <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                    +{programs.length - 6} more programs
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="portal-empty">No programs available yet.</div>
+              <div className="portal-empty" style={{ padding: '2rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📋</div>
+                <div>No programs available yet.</div>
+              </div>
             )}
           </div>
           {canCreatePrograms ? (
-            <div className="portal-card">
-              <div className="portal-card__title">Create program</div>
+            <div className="portal-card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>➕</span>
+                <div className="portal-card__title" style={{ fontSize: '1.05rem' }}>Create Program</div>
+              </div>
               <div className="portal-field" style={{ marginTop: '0.85rem' }}>
                 <label htmlFor="new-program-name">Program name</label>
                 <input
@@ -1079,116 +1240,142 @@ export default function UniversityPortalPage() {
                   value={newProgramName}
                   onChange={(e) => setNewProgramName(e.target.value)}
                   placeholder="e.g. Computer Science"
+                  style={{ borderRadius: '10px', padding: '0.75rem' }}
                 />
               </div>
-              <div style={{ marginTop: '0.85rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
                   className="portal-btn portal-btn--primary"
                   disabled={creatingProgram || !newProgramName.trim()}
                   onClick={createProgram}
+                  style={{ borderRadius: '10px', padding: '0.65rem 1.25rem' }}
                 >
-                  {creatingProgram ? 'Creating…' : 'Create program'}
+                  {creatingProgram ? 'Creating...' : 'Create Program'}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="portal-card">
-              <div className="portal-card__title">Coordinator note</div>
-              <div className="portal-card__body">
+            <div className="portal-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', border: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>💡</span>
+                <div className="portal-card__title" style={{ fontSize: '1.05rem', color: '#92400e' }}>Coordinator Note</div>
+              </div>
+              <div className="portal-card__body" style={{ color: '#78350f' }}>
                 Supervisors can log sessions for existing programs. University admins can add new programs.
               </div>
             </div>
           )}
         </div>
 
-        <div className="portal-grid" style={{ marginTop: '1rem' }}>
-          {canCreatePrograms ? (
-            <div className="portal-card">
-              <div className="portal-card__title">Create announcement / ad</div>
-              <div className="portal-card__meta" style={{ marginTop: '0.35rem' }}>
-                Publish dashboard notices visible to students and advisors.
+        {/* ── Announcements Section ── */}
+        <div style={{ marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>📢</span>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-h)', margin: 0 }}>Announcements</h3>
+          </div>
+          
+          <div className="portal-grid">
+            {canCreatePrograms ? (
+              <div className="portal-card" style={{ padding: '1.5rem' }}>
+                <div className="portal-card__title" style={{ marginBottom: '0.5rem' }}>Create Announcement</div>
+                <div className="portal-card__meta" style={{ marginBottom: '1rem' }}>
+                  Publish notices visible to students and advisors.
+                </div>
+                <div className="portal-field">
+                  <label htmlFor="announcement-title">Title</label>
+                  <input
+                    id="announcement-title"
+                    value={announcementDraft.title}
+                    onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="e.g. Research week registration now open"
+                    style={{ borderRadius: '10px', padding: '0.75rem' }}
+                  />
+                </div>
+                <div className="portal-field" style={{ marginTop: '0.75rem' }}>
+                  <label htmlFor="announcement-content">Message</label>
+                  <textarea
+                    id="announcement-content"
+                    rows={3}
+                    value={announcementDraft.content}
+                    onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, content: e.target.value }))}
+                    placeholder="Write announcement content..."
+                    style={{ borderRadius: '10px', padding: '0.75rem' }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+                  <div className="portal-field">
+                    <label htmlFor="announcement-image">Image URL</label>
+                    <input
+                      id="announcement-image"
+                      value={announcementDraft.imageUrl}
+                      onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, imageUrl: e.target.value }))}
+                      placeholder="https://..."
+                      style={{ borderRadius: '10px', padding: '0.65rem' }}
+                    />
+                  </div>
+                  <div className="portal-field">
+                    <label htmlFor="announcement-link">Link URL</label>
+                    <input
+                      id="announcement-link"
+                      value={announcementDraft.linkUrl}
+                      onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, linkUrl: e.target.value }))}
+                      placeholder="https://..."
+                      style={{ borderRadius: '10px', padding: '0.65rem' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={announcementDraft.pinned}
+                      onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, pinned: e.target.checked }))}
+                    />
+                    📌 Pin to top
+                  </label>
+                  <button
+                    type="button"
+                    className="portal-btn portal-btn--primary"
+                    disabled={creatingAnnouncement || !announcementDraft.title.trim() || !announcementDraft.content.trim()}
+                    onClick={createAnnouncement}
+                    style={{ borderRadius: '10px' }}
+                  >
+                    {creatingAnnouncement ? 'Publishing...' : 'Publish'}
+                  </button>
+                </div>
               </div>
-              <div className="portal-field" style={{ marginTop: '0.85rem' }}>
-                <label htmlFor="announcement-title">Title</label>
-                <input
-                  id="announcement-title"
-                  value={announcementDraft.title}
-                  onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g. Research week registration now open"
-                />
+            ) : (
+              <div className="portal-card" style={{ padding: '1.5rem', background: '#f8fafc' }}>
+                <div className="portal-card__title">Announcements</div>
+                <div className="portal-card__body" style={{ marginTop: '0.5rem' }}>
+                  University admins can publish dashboard announcements and promotional cards for all portal users.
+                </div>
               </div>
-              <div className="portal-field" style={{ marginTop: '0.75rem' }}>
-                <label htmlFor="announcement-content">Message</label>
-                <textarea
-                  id="announcement-content"
-                  rows={4}
-                  value={announcementDraft.content}
-                  onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, content: e.target.value }))}
-                  placeholder="Write announcement or ad content"
-                />
-              </div>
-              <div className="portal-field" style={{ marginTop: '0.75rem' }}>
-                <label htmlFor="announcement-image">Image URL (optional)</label>
-                <input
-                  id="announcement-image"
-                  value={announcementDraft.imageUrl}
-                  onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, imageUrl: e.target.value }))}
-                  placeholder="https://..."
-                />
-              </div>
-              <div className="portal-field" style={{ marginTop: '0.75rem' }}>
-                <label htmlFor="announcement-link">Link URL (optional)</label>
-                <input
-                  id="announcement-link"
-                  value={announcementDraft.linkUrl}
-                  onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, linkUrl: e.target.value }))}
-                  placeholder="https://..."
-                />
-              </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.85rem', fontSize: '0.9rem' }}>
-                <input
-                  type="checkbox"
-                  checked={announcementDraft.pinned}
-                  onChange={(e) => setAnnouncementDraft((prev) => ({ ...prev, pinned: e.target.checked }))}
-                />
-                Pin to top
-              </label>
-              <div style={{ marginTop: '0.85rem', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  className="portal-btn portal-btn--primary"
-                  disabled={creatingAnnouncement || !announcementDraft.title.trim() || !announcementDraft.content.trim()}
-                  onClick={createAnnouncement}
-                >
-                  {creatingAnnouncement ? 'Publishing…' : 'Publish announcement'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="portal-card">
-              <div className="portal-card__title">Announcements</div>
-              <div className="portal-card__body">
-                University admins can publish dashboard announcements and promotional cards for all portal users.
-              </div>
-            </div>
-          )}
+            )}
 
-          <div className="portal-card">
-            <div className="portal-card__title">Recent announcements</div>
-            <div className="portal-card__meta" style={{ marginTop: '0.35rem', marginBottom: '0.85rem' }}>
-              Shared with students and advisors across the portal dashboards.
+          <div className="portal-card" style={{ padding: '1.5rem' }}>
+            <div className="portal-card__title" style={{ marginBottom: '0.5rem' }}>Recent Announcements</div>
+            <div className="portal-card__meta" style={{ marginBottom: '1rem' }}>
+              Shared with students and advisors across the portal.
             </div>
             {announcements.length ? (
-              <div style={{ display: 'grid', gap: '0.85rem' }}>
+              <div style={{ display: 'grid', gap: '1rem' }}>
                 {announcements.slice(0, 5).map((announcement) => (
-                  <div key={announcement.id} style={{ border: '1px solid var(--border)', borderRadius: '1rem', padding: '0.85rem', background: 'var(--surface-muted)' }}>
+                  <div key={announcement.id} style={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '1rem',
+                    background: 'white',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  }}>
                     {announcement.imageUrl ? (
                       <div
                         style={{
-                          height: '118px',
-                          borderRadius: '0.75rem',
-                          marginBottom: '0.75rem',
+                          height: '140px',
+                          borderRadius: '12px',
+                          marginBottom: '1rem',
                           backgroundImage: `url(${announcement.imageUrl})`,
                           backgroundPosition: 'center',
                           backgroundSize: 'cover',
@@ -1196,23 +1383,57 @@ export default function UniversityPortalPage() {
                         }}
                       />
                     ) : null}
-                    <div className="portal-card__row" style={{ alignItems: 'flex-start', gap: '0.5rem' }}>
-                      <div className="portal-card__title" style={{ flex: 1, fontSize: '0.98rem' }}>{announcement.title}</div>
-                      {announcement.pinned ? <span className="portal-badge">Pinned</span> : null}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-h)', flex: 1 }}>{announcement.title}</div>
+                      {announcement.pinned ? (
+                        <span style={{
+                          fontSize: '0.7rem',
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '999px',
+                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                          color: 'white',
+                          fontWeight: 600,
+                        }}>📌 Pinned</span>
+                      ) : null}
                     </div>
-                    <div className="portal-card__meta" style={{ marginTop: '0.3rem' }}>
-                      {new Date(announcement.createdAt).toLocaleString()} · by {announcement.createdByUsername}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', fontSize: '0.8rem', color: '#64748b' }}>
+                      <span>🗓️ {new Date(announcement.createdAt).toLocaleDateString()}</span>
+                      <span>•</span>
+                      <span>👤 {announcement.createdByUsername}</span>
                     </div>
-                    <div className="portal-card__body" style={{ marginTop: '0.65rem' }}>{announcement.content}</div>
-                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ marginTop: '0.75rem', color: 'var(--text-body)', lineHeight: 1.5 }}>{announcement.content}</div>
+                    <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       {announcement.linkUrl ? (
-                        <a href={announcement.linkUrl} target="_blank" rel="noreferrer" className="portal-btn portal-btn--secondary" style={{ textDecoration: 'none', display: 'inline-flex' }}>
-                          Open link
+                        <a href={announcement.linkUrl} target="_blank" rel="noreferrer" 
+                          style={{
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '8px',
+                            background: '#eef2ff',
+                            color: '#4f46e5',
+                            fontWeight: 500,
+                            fontSize: '0.85rem',
+                          }}>
+                          🔗 Open Link
                         </a>
                       ) : null}
                       {canCreatePrograms ? (
-                        <button type="button" className="portal-btn portal-btn--ghost" onClick={() => deleteAnnouncement(announcement.id)}>
-                          Delete
+                        <button type="button" 
+                          style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '8px',
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: 500,
+                            fontSize: '0.85rem',
+                          }}
+                          onClick={() => deleteAnnouncement(announcement.id)}>
+                          🗑️ Delete
                         </button>
                       ) : null}
                     </div>
@@ -1220,8 +1441,13 @@ export default function UniversityPortalPage() {
                 ))}
               </div>
             ) : (
-              <div className="portal-empty">No announcements published yet.</div>
+              <div className="portal-empty" style={{ padding: '2rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📢</div>
+                <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>No Announcements Yet</div>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Create your first announcement to share news with your community.</div>
+              </div>
             )}
+          </div>
           </div>
         </div>
       </section>
@@ -2302,68 +2528,254 @@ export default function UniversityPortalPage() {
       {activeSection === 'analytics' && (
       <section className="portal-section">
         <div className="portal-section__header">
-          <h2 className="portal-section__title">Analytics &amp; reports</h2>
-          <p className="portal-section__hint">Summary for decision-makers and accreditation</p>
+          <h2 className="portal-section__title">Analytics &amp; Reports</h2>
+          <p className="portal-section__hint">Visual insights for decision-makers and accreditation</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           <button type="button" className="portal-btn portal-btn--primary" style={{ width: 'fit-content' }} onClick={loadReport}>
-            Generate analytics summary
+            Generate Analytics
           </button>
           <button type="button" className="portal-btn portal-btn--secondary" style={{ width: 'fit-content' }} onClick={loadAccreditation}>
-            Generate accreditation summary
+            Accreditation Report
           </button>
         </div>
-        <div className="portal-grid">
-          {reportSummary ? (
-            <div className="portal-card">
-              <div className="portal-card__title">Analytics summary</div>
-              <div className="portal-card__meta">Generated {reportSummary.generatedAt}</div>
-              <div className="portal-card__body" style={{ marginTop: '0.5rem' }}>{reportSummary.description}</div>
-              <div className="portal-grid" style={{ marginTop: '1rem' }}>
-                {Object.entries(reportSummary.metrics ?? {}).map(([key, value]) => (
-                  <div key={key} className="portal-card" style={{ padding: '0.85rem' }}>
-                    <div className="portal-card__meta">{key}</div>
-                    <div className="portal-card__title" style={{ marginTop: '0.35rem' }}>{String(value)}</div>
-                  </div>
-                ))}
+
+        {reportSummary ? (
+          <>
+            {/* Key Metrics Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className="portal-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Total Sessions</div>
+                <div style={{ fontSize: '2rem', fontWeight: 700, marginTop: '0.25rem' }}>{reportSummary.metrics?.sessionsTotal ?? 0}</div>
               </div>
-              <div style={{ marginTop: '1rem', display: 'grid', gap: '0.75rem' }}>
-                {(reportSummary.breakdown ?? []).map((item, idx) => (
-                  <div key={`${item.programId ?? idx}`} className="portal-card" style={{ padding: '0.85rem' }}>
-                    <div className="portal-card__row">
-                      <span className="portal-card__title">{item.programName ?? item.programId ?? `Item ${idx + 1}`}</span>
-                      <span className="portal-card__meta">Completion {item.completionPercent ?? 0}%</span>
-                    </div>
-                    <div className="portal-card__meta" style={{ marginTop: '0.45rem' }}>
-                      Sessions {item.sessionsTotal ?? 0} · Active {item.sessionsActive ?? 0} · Completed {item.sessionsCompleted ?? 0} · Feedback {item.feedbackEntries ?? 0}
-                    </div>
-                  </div>
-                ))}
+              <div className="portal-card" style={{ background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', color: 'white', padding: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Completed</div>
+                <div style={{ fontSize: '2rem', fontWeight: 700, marginTop: '0.25rem' }}>{reportSummary.metrics?.sessionsCompleted ?? 0}</div>
               </div>
-            </div>
-          ) : (
-            <div className="portal-empty">Load an analytics summary to see current institutional metrics.</div>
-          )}
-          {accreditationSummary ? (
-            <div className="portal-card">
-              <div className="portal-card__title">Accreditation summary</div>
-              <div className="portal-card__meta">Generated {accreditationSummary.generatedAt}</div>
-              <div className="portal-card__body" style={{ marginTop: '0.5rem' }}>{accreditationSummary.description}</div>
-              <div className="portal-grid" style={{ marginTop: '1rem' }}>
-                {Object.entries(accreditationSummary.metrics ?? {}).map(([key, value]) => (
-                  <div key={key} className="portal-card" style={{ padding: '0.85rem' }}>
-                    <div className="portal-card__meta">{key}</div>
-                    <div className="portal-card__body" style={{ marginTop: '0.35rem', whiteSpace: 'pre-wrap' }}>
-                      {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                    </div>
-                  </div>
-                ))}
+              <div className="portal-card" style={{ background: 'linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%)', color: 'white', padding: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Active</div>
+                <div style={{ fontSize: '2rem', fontWeight: 700, marginTop: '0.25rem' }}>{reportSummary.metrics?.sessionsActive ?? 0}</div>
+              </div>
+              <div className="portal-card" style={{ background: 'linear-gradient(135deg, #5c6bc0 0%, #7986cb 100%)', color: 'white', padding: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Planned</div>
+                <div style={{ fontSize: '2rem', fontWeight: 700, marginTop: '0.25rem' }}>{reportSummary.metrics?.sessionsPlanned ?? 0}</div>
+              </div>
+              <div className="portal-card" style={{ background: 'linear-gradient(135deg, #00b4db 0%, #0083b0 100%)', color: 'white', padding: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Feedback Coverage</div>
+                <div style={{ fontSize: '2rem', fontWeight: 700, marginTop: '0.25rem' }}>{reportSummary.metrics?.feedbackCoveragePercent ?? 0}%</div>
+              </div>
+              <div className="portal-card" style={{ background: 'linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)', color: 'white', padding: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Overdue Feedback</div>
+                <div style={{ fontSize: '2rem', fontWeight: 700, marginTop: '0.25rem' }}>{reportSummary.metrics?.overdueFeedback ?? 0}</div>
               </div>
             </div>
-          ) : (
-            <div className="portal-empty">Load the accreditation summary to review compliance-focused evidence.</div>
-          )}
-        </div>
+
+            {/* Charts Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              {/* Session Status Doughnut Chart */}
+              <div className="portal-card" style={{ padding: '1.5rem' }}>
+                <div className="portal-card__title" style={{ marginBottom: '1rem' }}>Session Status Distribution</div>
+                <div style={{ height: '280px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <Doughnut
+                    data={{
+                      labels: ['Completed', 'Active', 'Planned'],
+                      datasets: [{
+                        data: [
+                          reportSummary.metrics?.sessionsCompleted ?? 0,
+                          reportSummary.metrics?.sessionsActive ?? 0,
+                          reportSummary.metrics?.sessionsPlanned ?? 0,
+                        ],
+                        backgroundColor: ['#22c55e', '#f59e0b', '#6366f1'],
+                        borderColor: ['#16a34a', '#d97706', '#4f46e5'],
+                        borderWidth: 2,
+                      }],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
+                      },
+                      cutout: '60%',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Feedback & Reminders Bar Chart */}
+              <div className="portal-card" style={{ padding: '1.5rem' }}>
+                <div className="portal-card__title" style={{ marginBottom: '1rem' }}>Feedback &amp; Reminders</div>
+                <div style={{ height: '280px' }}>
+                  <Bar
+                    data={{
+                      labels: ['With Feedback', 'Reminders Sent', 'Pending', 'Overdue'],
+                      datasets: [{
+                        label: 'Count',
+                        data: [
+                          reportSummary.metrics?.sessionsWithFeedback ?? 0,
+                          reportSummary.metrics?.remindersSent ?? 0,
+                          reportSummary.metrics?.remindersPending ?? 0,
+                          reportSummary.metrics?.remindersOverdue ?? 0,
+                        ],
+                        backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderRadius: 8,
+                      }],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: { legend: { display: false } },
+                      scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } },
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Program Breakdown */}
+            {(reportSummary.breakdown ?? []).length > 0 && (
+              <div className="portal-card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <div className="portal-card__title" style={{ marginBottom: '1rem' }}>Program Performance</div>
+                <div style={{ height: '300px' }}>
+                  <Bar
+                    data={{
+                      labels: (reportSummary.breakdown ?? []).map(p => p.programName || 'Unknown'),
+                      datasets: [
+                        {
+                          label: 'Total Sessions',
+                          data: (reportSummary.breakdown ?? []).map(p => p.sessionsTotal ?? 0),
+                          backgroundColor: '#6366f1',
+                          borderRadius: 4,
+                        },
+                        {
+                          label: 'Completed',
+                          data: (reportSummary.breakdown ?? []).map(p => p.sessionsCompleted ?? 0),
+                          backgroundColor: '#22c55e',
+                          borderRadius: 4,
+                        },
+                        {
+                          label: 'Active',
+                          data: (reportSummary.breakdown ?? []).map(p => p.sessionsActive ?? 0),
+                          backgroundColor: '#f59e0b',
+                          borderRadius: 4,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: { legend: { position: 'top', labels: { usePointStyle: true } } },
+                      scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } },
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Completion Progress by Program */}
+            {(reportSummary.breakdown ?? []).length > 0 && (
+              <div className="portal-card" style={{ padding: '1.5rem' }}>
+                <div className="portal-card__title" style={{ marginBottom: '1rem' }}>Completion Progress by Program</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {(reportSummary.breakdown ?? []).map((program, idx) => (
+                    <div key={program.programId ?? idx}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                        <span style={{ fontWeight: 500 }}>{program.programName || 'Unknown Program'}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>{program.completionPercent ?? 0}%</span>
+                      </div>
+                      <div style={{ height: '12px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${Math.min(program.completionPercent ?? 0, 100)}%`,
+                            background: (program.completionPercent ?? 0) >= 75 ? 'linear-gradient(90deg, #22c55e, #16a34a)' :
+                                        (program.completionPercent ?? 0) >= 50 ? 'linear-gradient(90deg, #f59e0b, #d97706)' :
+                                        'linear-gradient(90deg, #ef4444, #dc2626)',
+                            borderRadius: '6px',
+                            transition: 'width 0.5s ease',
+                          }}
+                        />
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+                        {program.sessionsCompleted ?? 0} of {program.sessionsTotal ?? 0} sessions completed
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="portal-empty" style={{ padding: '3rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 500, marginBottom: '0.5rem' }}>No Analytics Data Yet</div>
+            <div style={{ color: '#64748b' }}>Click "Generate Analytics" to load institutional metrics and visualizations.</div>
+          </div>
+        )}
+
+        {/* Accreditation Summary */}
+        {accreditationSummary && (
+          <div style={{ marginTop: '2rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem' }}>Accreditation Summary</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className="portal-card" style={{ padding: '1.25rem', borderLeft: '4px solid #22c55e' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Supervision Compliance</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#22c55e' }}>{accreditationSummary.metrics?.supervisionCompliance ?? 0}%</div>
+              </div>
+              <div className="portal-card" style={{ padding: '1.25rem', borderLeft: '4px solid #3b82f6' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Feedback Coverage</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#3b82f6' }}>{accreditationSummary.metrics?.feedbackCoveragePercent ?? 0}%</div>
+              </div>
+              <div className="portal-card" style={{ padding: '1.25rem', borderLeft: '4px solid #8b5cf6' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Reminder Delivery</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#8b5cf6' }}>{accreditationSummary.metrics?.reminderDeliveryPercent ?? 0}%</div>
+              </div>
+              <div className="portal-card" style={{ padding: '1.25rem', borderLeft: '4px solid #f59e0b' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Programs Tracked</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#f59e0b' }}>{accreditationSummary.metrics?.programsTracked ?? 0}</div>
+              </div>
+            </div>
+            
+            {/* Compliance Gauge Chart */}
+            <div className="portal-card" style={{ padding: '1.5rem' }}>
+              <div className="portal-card__title" style={{ marginBottom: '1rem' }}>Compliance Overview</div>
+              <div style={{ height: '250px', display: 'flex', justifyContent: 'center' }}>
+                <Doughnut
+                  data={{
+                    labels: ['Supervision Compliance', 'Feedback Coverage', 'Reminder Delivery'],
+                    datasets: [{
+                      data: [
+                        accreditationSummary.metrics?.supervisionCompliance ?? 0,
+                        accreditationSummary.metrics?.feedbackCoveragePercent ?? 0,
+                        accreditationSummary.metrics?.reminderDeliveryPercent ?? 0,
+                      ],
+                      backgroundColor: ['#22c55e', '#3b82f6', '#8b5cf6'],
+                      borderWidth: 0,
+                    }],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { position: 'right', labels: { padding: 15, usePointStyle: true } },
+                    },
+                    cutout: '70%',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="portal-card__meta" style={{ marginTop: '1rem', textAlign: 'center' }}>
+              Report generated: {new Date(accreditationSummary.generatedAt).toLocaleString()}
+            </div>
+          </div>
+        )}
       </section>
       )}
 
