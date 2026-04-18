@@ -1828,37 +1828,162 @@ export default function UniversityPortalPage() {
       {activeSection === 'sessions' && (
       <section className="portal-section">
         <div className="portal-section__header">
-          <h2 className="portal-section__title">Supervision sessions</h2>
-          <p className="portal-section__hint">Log new meetings, then filter and review them</p>
+          <h2 className="portal-section__title">Supervision Sessions</h2>
+          <p className="portal-section__hint">Log new meetings, track progress, and manage feedback</p>
         </div>
+
+        {/* Session Stats Overview */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{
+            padding: '1.25rem',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+          }}>
+            <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.35rem' }}>Total Sessions</div>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{sessions.length}</div>
+          </div>
+          <div style={{
+            padding: '1.25rem',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white',
+          }}>
+            <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.35rem' }}>Active</div>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{sessions.filter(s => s.status === 'ACTIVE').length}</div>
+          </div>
+          <div style={{
+            padding: '1.25rem',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white',
+          }}>
+            <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.35rem' }}>Planned</div>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{sessions.filter(s => s.status === 'PLANNED').length}</div>
+          </div>
+          <div style={{
+            padding: '1.25rem',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            color: 'white',
+          }}>
+            <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.35rem' }}>Completed</div>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{sessions.filter(s => s.status === 'COMPLETED').length}</div>
+          </div>
+        </div>
+
         {canCreateSessions ? (
-          <div className="portal-panel" style={{ marginBottom: '1rem' }}>
-            <div className="portal-section__header" style={{ marginBottom: '0.85rem' }}>
-              <h3 className="portal-section__title" style={{ fontSize: '1.05rem' }}>Log supervision session</h3>
-              <p className="portal-section__hint">Create a session record and optionally schedule feedback reminders.</p>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            padding: '2rem',
+            marginBottom: '1.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+          }}>
+            {/* Header */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '1rem', 
+              marginBottom: '1.5rem',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid #f1f5f9',
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+              }}>📝</div>
+              <div>
+                <h3 style={{ 
+                  fontSize: '1.25rem', 
+                  fontWeight: 700, 
+                  color: '#1e293b', 
+                  margin: 0,
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}>Log New Session</h3>
+                <p style={{ 
+                  fontSize: '0.9rem', 
+                  color: '#64748b', 
+                  margin: '0.25rem 0 0 0',
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}>Create a session record and optionally schedule feedback reminders.</p>
+              </div>
             </div>
-            <div className="portal-grid">
-              <div className="portal-field">
-                <label htmlFor="session-program">Program</label>
+
+            {/* Form Grid - Row 1: Program, Student, Supervisor */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(3, 1fr)', 
+              gap: '1.5rem',
+              marginBottom: '1.5rem',
+            }}>
+              <div>
+                <label htmlFor="session-program" style={{ 
+                  fontWeight: 600, 
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  marginBottom: '0.5rem', 
+                  display: 'block',
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}>Program <span style={{ color: '#ef4444' }}>*</span></label>
                 <select
                   id="session-program"
                   value={sessionDraft.programId}
                   onChange={(e) => setSessionDraft((prev) => ({ ...prev, programId: e.target.value }))}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.875rem 1rem', 
+                    borderRadius: '12px', 
+                    border: '2px solid #e5e7eb', 
+                    background: 'white',
+                    fontSize: '0.95rem',
+                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    color: '#1e293b',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.2s ease',
+                    boxSizing: 'border-box',
+                  }}
                 >
-                  <option value="">Select program</option>
+                  <option value="">Select program...</option>
                   {programs.map((program) => (
                     <option key={program.id} value={program.id}>{program.name}</option>
                   ))}
                 </select>
               </div>
-              <div className="portal-field">
-                <label htmlFor="session-student">Student</label>
+              
+              <div>
+                <label htmlFor="session-student" style={{ 
+                  fontWeight: 600, 
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  marginBottom: '0.5rem', 
+                  display: 'block',
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}>Student <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
                   id="session-student"
                   list="student-options"
                   value={sessionDraft.studentUsername}
                   onChange={(e) => setSessionDraft((prev) => ({ ...prev, studentUsername: e.target.value }))}
-                  placeholder="student username"
+                  placeholder="Enter student username"
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.875rem 1rem', 
+                    borderRadius: '12px', 
+                    border: '2px solid #e5e7eb',
+                    fontSize: '0.95rem',
+                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    color: '#1e293b',
+                    transition: 'border-color 0.2s ease',
+                    boxSizing: 'border-box',
+                  }}
                 />
                 <datalist id="student-options">
                   {students.map((student) => (
@@ -1866,56 +1991,166 @@ export default function UniversityPortalPage() {
                   ))}
                 </datalist>
               </div>
-              <div className="portal-field">
-                <label htmlFor="session-supervisor">Supervisor</label>
+              
+              <div>
+                <label htmlFor="session-supervisor" style={{ 
+                  fontWeight: 600, 
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  marginBottom: '0.5rem', 
+                  display: 'block',
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}>Supervisor <span style={{ color: '#ef4444' }}>*</span></label>
                 {canManageSupervisors ? (
                   <select
                     id="session-supervisor"
                     value={sessionDraft.supervisorUsername}
                     onChange={(e) => setSessionDraft((prev) => ({ ...prev, supervisorUsername: e.target.value }))}
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.875rem 1rem', 
+                      borderRadius: '12px', 
+                      border: '2px solid #e5e7eb', 
+                      background: 'white',
+                      fontSize: '0.95rem',
+                      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      color: '#1e293b',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s ease',
+                      boxSizing: 'border-box',
+                    }}
                   >
-                    <option value="">Select supervisor</option>
+                    <option value="">Select supervisor...</option>
                     {supervisors.map((supervisor) => (
                       <option key={supervisor.id} value={supervisor.username}>{supervisor.username}</option>
                     ))}
                   </select>
                 ) : (
-                  <input id="session-supervisor" value={sessionDraft.supervisorUsername || username} readOnly />
+                  <input 
+                    id="session-supervisor" 
+                    value={sessionDraft.supervisorUsername || username} 
+                    readOnly 
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.875rem 1rem', 
+                      borderRadius: '12px', 
+                      border: '2px solid #e5e7eb', 
+                      background: '#f8fafc',
+                      fontSize: '0.95rem',
+                      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      color: '#64748b',
+                      boxSizing: 'border-box',
+                    }} 
+                  />
                 )}
               </div>
-              <div className="portal-field">
-                <label htmlFor="session-scheduled">Scheduled at</label>
+            </div>
+
+            {/* Form Grid - Row 2: Scheduled At, Feedback Deadline */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(2, 1fr)', 
+              gap: '1.5rem',
+              marginBottom: '1.5rem',
+            }}>
+              <div>
+                <label htmlFor="session-scheduled" style={{ 
+                  fontWeight: 600, 
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  marginBottom: '0.5rem', 
+                  display: 'block',
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}>Scheduled At <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
                   id="session-scheduled"
                   type="datetime-local"
                   value={sessionDraft.scheduledAt}
                   onChange={(e) => setSessionDraft((prev) => ({ ...prev, scheduledAt: e.target.value }))}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.875rem 1rem', 
+                    borderRadius: '12px', 
+                    border: '2px solid #e5e7eb',
+                    fontSize: '0.95rem',
+                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    color: '#1e293b',
+                    transition: 'border-color 0.2s ease',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
-              <div className="portal-field">
-                <label htmlFor="session-deadline">Feedback deadline</label>
+              
+              <div>
+                <label htmlFor="session-deadline" style={{ 
+                  fontWeight: 600, 
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  marginBottom: '0.5rem', 
+                  display: 'block',
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}>Feedback Deadline <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span></label>
                 <input
                   id="session-deadline"
                   type="datetime-local"
                   value={sessionDraft.feedbackDeadlineAt}
                   onChange={(e) => setSessionDraft((prev) => ({ ...prev, feedbackDeadlineAt: e.target.value }))}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.875rem 1rem', 
+                    borderRadius: '12px', 
+                    border: '2px solid #e5e7eb',
+                    fontSize: '0.95rem',
+                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    color: '#1e293b',
+                    transition: 'border-color 0.2s ease',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
             </div>
-            <div className="portal-field" style={{ marginTop: '0.85rem' }}>
-              <label htmlFor="session-notes">Notes</label>
+
+            {/* Notes Field */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label htmlFor="session-notes" style={{ 
+                fontWeight: 600, 
+                fontSize: '0.875rem',
+                color: '#374151',
+                marginBottom: '0.5rem', 
+                display: 'block',
+                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              }}>Notes <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span></label>
               <textarea
                 id="session-notes"
                 rows={4}
                 value={sessionDraft.notes}
                 onChange={(e) => setSessionDraft((prev) => ({ ...prev, notes: e.target.value }))}
-                placeholder="Agenda, milestones, or follow-up actions"
+                placeholder="Enter agenda, milestones, or follow-up actions..."
+                style={{ 
+                  width: '100%', 
+                  padding: '0.875rem 1rem', 
+                  borderRadius: '12px', 
+                  border: '2px solid #e5e7eb', 
+                  resize: 'vertical',
+                  fontSize: '0.95rem',
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  color: '#1e293b',
+                  lineHeight: 1.5,
+                  transition: 'border-color 0.2s ease',
+                  boxSizing: 'border-box',
+                }}
               />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.85rem' }}>
+
+            {/* Submit Button */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'flex-end',
+              paddingTop: '1rem',
+              borderTop: '1px solid #f1f5f9',
+            }}>
               <button
                 type="button"
-                className="portal-btn portal-btn--primary"
                 disabled={
                   creatingSession ||
                   !sessionDraft.programId ||
@@ -1924,55 +2159,150 @@ export default function UniversityPortalPage() {
                   !sessionDraft.scheduledAt
                 }
                 onClick={createSession}
+                style={{
+                  padding: '0.875rem 2rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: (creatingSession || !sessionDraft.programId || !sessionDraft.studentUsername.trim() || !sessionDraft.scheduledAt) 
+                    ? '#cbd5e1' 
+                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  cursor: (creatingSession || !sessionDraft.programId || !sessionDraft.studentUsername.trim() || !sessionDraft.scheduledAt) ? 'not-allowed' : 'pointer',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  boxShadow: '0 4px 14px rgba(102, 126, 234, 0.4)',
+                }}
               >
-                {creatingSession ? 'Saving…' : 'Log session'}
+                {creatingSession ? 'Saving...' : '📅 Log Session'}
               </button>
             </div>
           </div>
         ) : null}
-        <div className="portal-toolbar">
-          <div className="portal-field" style={{ flex: '1 1 240px' }}>
-            <label htmlFor="student-filter">Filter by student username (optional)</label>
+
+        {/* Filter Section */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '1.25rem',
+          marginBottom: '1.5rem',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b' }}>
+            <span style={{ fontSize: '1.25rem' }}>🔍</span>
+            <span style={{ fontWeight: 500 }}>Filter:</span>
+          </div>
+          <div style={{ flex: 1, minWidth: '200px' }}>
             <input
               id="student-filter"
               value={studentFilter}
               onChange={(e) => setStudentFilter(e.target.value)}
-              placeholder="e.g. student1"
+              placeholder="Search by student username..."
+              style={{
+                width: '100%',
+                padding: '0.65rem 1rem',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                fontSize: '0.9rem',
+              }}
             />
           </div>
         </div>
-        <div className="portal-grid">
+
+        {/* Sessions Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
           {sessions.length ? (
             sessions.map((s) => (
-              <div key={s.id} className="portal-card">
-                <div className="portal-card__row">
+              <div key={s.id} style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                   <div>
-                    <div className="portal-card__title">{s.programName ?? 'Program'}</div>
-                    <div className="portal-card__meta">
-                      Student · {s.studentUsername} · Supervisor · {s.supervisorUsername}
+                    <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-h)' }}>{s.programName ?? 'Program'}</div>
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '999px',
+                    fontWeight: 600,
+                    background: s.status === 'COMPLETED' ? '#dcfce7' : s.status === 'ACTIVE' ? '#fef3c7' : '#e0e7ff',
+                    color: s.status === 'COMPLETED' ? '#16a34a' : s.status === 'ACTIVE' ? '#d97706' : '#4f46e5',
+                  }}>
+                    {s.status === 'COMPLETED' ? '✓ ' : s.status === 'ACTIVE' ? '● ' : '○ '}{s.status}
+                  </span>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#64748b' }}>
+                    <span>👨‍🎓</span>
+                    <span style={{ fontWeight: 500, color: 'var(--text-h)' }}>{s.studentUsername}</span>
+                    <span style={{ color: '#cbd5e1' }}>|</span>
+                    <span>👨‍🏫</span>
+                    <span style={{ fontWeight: 500, color: 'var(--text-h)' }}>{s.supervisorUsername}</span>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#f8fafc',
+                  borderRadius: '10px',
+                  padding: '0.75rem',
+                  marginBottom: '0.75rem',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#64748b' }}>
+                    <span>📅</span>
+                    <span>Scheduled: <strong style={{ color: 'var(--text-h)' }}>{new Date(s.scheduledAt).toLocaleString()}</strong></span>
+                  </div>
+                  {s.feedbackDeadlineAt && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#64748b', marginTop: '0.35rem' }}>
+                      <span>⏰</span>
+                      <span>Feedback due: <strong style={{ color: '#f59e0b' }}>{new Date(s.feedbackDeadlineAt).toLocaleString()}</strong></span>
                     </div>
-                  </div>
-                  <span className="portal-badge">{s.status}</span>
+                  )}
                 </div>
-                <div className="portal-card__meta" style={{ marginTop: '0.5rem' }}>
-                  Scheduled {s.scheduledAt}
-                  {s.feedbackDeadlineAt ? ` · Feedback due ${s.feedbackDeadlineAt}` : ''}
-                </div>
+
                 {canFeedback ? (
-                  <div style={{ marginTop: '0.85rem' }}>
-                    <button
-                      type="button"
-                      className="portal-btn portal-btn--secondary"
-                      onClick={() => setSelectedSessionId(s.id)}
-                    >
-                      {selectedSessionId === s.id ? 'Selected for feedback' : 'Select for feedback'}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSessionId(s.id)}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem',
+                      borderRadius: '10px',
+                      border: selectedSessionId === s.id ? '2px solid #667eea' : '1px solid #e2e8f0',
+                      background: selectedSessionId === s.id ? '#eef2ff' : 'white',
+                      color: selectedSessionId === s.id ? '#4f46e5' : '#64748b',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {selectedSessionId === s.id ? '✓ Selected for Feedback' : '📝 Select for Feedback'}
+                  </button>
                 ) : null}
               </div>
             ))
           ) : (
-            <div className="portal-empty">No sessions found.</div>
+            <div style={{
+              gridColumn: '1 / -1',
+              textAlign: 'center',
+              padding: '3rem',
+              background: '#f8fafc',
+              borderRadius: '16px',
+            }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--text-h)', marginBottom: '0.5rem' }}>No Sessions Found</div>
+              <div style={{ color: '#64748b' }}>Create your first supervision session or adjust your filters.</div>
+            </div>
           )}
         </div>
       </section>
