@@ -67,18 +67,18 @@ Here's a detailed breakdown of ALFA University College's **courses and fees**:
 
 ---
 
-### 🎓 Programmes Offered
+### Programmes Offered
 
 AUC offers programmes ranging from Foundation, Diploma, Bachelor's Degree, Master's Degree, and PhD. It also offers SKM (Sijil Kemahiran Malaysia) and DKM (Diploma Kemahiran Malaysia) skill-based courses.
 
 ---
 
-### 📅 Intake Dates
+### Intake Dates
 Foundation intakes are in January, March, June, and October. Diploma intakes are in January, May, and September.
 
 ---
 
-### 💰 Fees Breakdown
+### Fees Breakdown
 
 **Foundation Programs (1 Year)**
 
@@ -106,7 +106,7 @@ Foundation intakes are in January, March, June, and October. Diploma intakes are
 
 ---
 
-### 🎓 Bachelor's Degree Fees (3 Years)
+### Bachelor's Degree Fees (3 Years)
 
 
 
@@ -129,7 +129,7 @@ Foundation intakes are in January, March, June, and October. Diploma intakes are
 
 ---
 
-### 🎓 Master's Degree Fees (Coursework)
+### Master's Degree Fees (Coursework)
 
 
 
@@ -147,7 +147,7 @@ Foundation intakes are in January, March, June, and October. Diploma intakes are
 
 ---
 
-### 🔬 Master's Degree Fees (Research-Based)
+### Master's Degree Fees (Research-Based)
 
 
 
@@ -165,7 +165,7 @@ Foundation intakes are in January, March, June, and October. Diploma intakes are
 
 ---
 
-> ⚠️ All fees are based on the latest available data and may change. Always verify directly with AUC at **admissions@alfa.edu.my** or **+603 5631 9208** before making any decisions.
+> [Note] All fees are based on the latest available data and may change. Always verify directly with AUC at **admissions@alfa.edu.my** or **+603 5631 9208** before making any decisions.
 
 
 **International Student Initial Fees (one-time)**
@@ -179,13 +179,13 @@ Foundation intakes are in January, March, June, and October. Diploma intakes are
 
 ---
 
-### 🏫 Schools / Fields of Study
+### Schools / Fields of Study
 
 AUC has five schools covering social sciences and humanities, creative arts, economics, management and accounting, information science and technology, and science and engineering.
 
 ---
 
-### 📞 Contact for Admissions
+### Contact for Admissions
 - **Email:** admissions@alfa.edu.my
 - **Phone:** +603 5631 9208
 - **Website:** alfa.edu.my
