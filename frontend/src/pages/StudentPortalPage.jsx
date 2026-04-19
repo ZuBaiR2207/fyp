@@ -181,7 +181,7 @@ export default function StudentPortalPage() {
         window.history.replaceState({}, '', window.location.pathname)
       }
       // Load payment history after confirm
-      apiFetch(`${INTEGRATION_URL}/api/integrations/payment/transactions`, auth)
+      apiFetch(`${INTEGRATION_URL}/api/integrations/payment/transactions/user?username=${username}`, auth)
         .then((data) => setPaymentHistory(Array.isArray(data) ? data : []))
         .catch(console.error)
     }
