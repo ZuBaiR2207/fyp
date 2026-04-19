@@ -13,6 +13,7 @@ const NAV = [
   { id: 'sessions', label: 'Sessions', icon: 'calendar' },
   { id: 'chat', label: 'Chat', icon: 'message' },
   { id: 'summarizer', label: 'Summarizer', icon: 'search' },
+  { id: 'payments', label: 'Payments', icon: 'dollar' },
   { id: 'feed', label: 'Live status', icon: 'activity' },
 ]
 
@@ -163,24 +164,28 @@ export default function StudentPortalPage() {
       .then((progs) => setPrograms(Array.isArray(progs) ? progs : []))
       .catch(console.error)
 
-    // Confirm payment if redirected from Stripe success
+    // Confirm payment if redirected from Stripe success, then load history
     const params = new URLSearchParams(window.location.search)
-    if (params.get('payment') === 'success') {
-      const sid = sessionStorage.getItem('stripe_session_id')
-      if (sid) {
-        apiFetch(`${INTEGRATION_URL}/api/integrations/payment/confirm`, auth, {
-          method: 'POST',
-          body: JSON.stringify({ sessionId: sid })
-        }).catch(console.error)
-        sessionStorage.removeItem('stripe_session_id')
+    const confirmAndLoadHistory = async () => {
+      if (params.get('payment') === 'success') {
+        const sid = sessionStorage.getItem('stripe_session_id')
+        if (sid) {
+          try {
+            await apiFetch(`${INTEGRATION_URL}/api/integrations/payment/confirm`, auth, {
+              method: 'POST',
+              body: JSON.stringify({ sessionId: sid })
+            })
+          } catch (e) { console.error('Payment confirm failed:', e) }
+          sessionStorage.removeItem('stripe_session_id')
+        }
+        window.history.replaceState({}, '', window.location.pathname)
       }
-      window.history.replaceState({}, '', window.location.pathname)
+      // Load payment history after confirm
+      apiFetch(`${INTEGRATION_URL}/api/integrations/payment/transactions`, auth)
+        .then((data) => setPaymentHistory(Array.isArray(data) ? data : []))
+        .catch(console.error)
     }
-
-    // Load payment history
-    apiFetch(`${INTEGRATION_URL}/api/integrations/payment/transactions`, auth)
-      .then((data) => setPaymentHistory(Array.isArray(data) ? data : []))
-      .catch(console.error)
+    confirmAndLoadHistory()
   }, [token])
 
   useEffect(() => {
@@ -668,80 +673,7 @@ export default function StudentPortalPage() {
               <button type="button" className="portal-btn portal-btn--secondary" onClick={() => setActiveSection('summarizer')}>Paper summarizer</button>
             </div>
           </div>
-          <div className="portal-card">
-            <div className="portal-card__title">Pay fees (MYR)</div>
-            <div className="portal-card__body">
-              <div className="portal-field" style={{ marginBottom: '0.85rem' }}>
-                <label htmlFor="payment-amount">Payment amount</label>
-                <input
-                  id="payment-amount"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="100"
-                />
-              </div>
-              <button
-                type="button"
-                className="portal-btn portal-btn--primary"
-                onClick={createStripeCheckoutSession}
-                disabled={paymentLoading}
-              >
-                {paymentLoading ? 'Redirecting to Stripe…' : 'Pay with Stripe'}
-              </button>
-              {paymentError ? (
-                <div className="portal-card__meta" style={{ marginTop: '0.75rem', color: 'var(--danger)' }}>
-                  {paymentError}
-                </div>
-              ) : null}
-            </div>
-            <div className="portal-card__meta">Secure Malaysian payment via Stripe Checkout.</div>
-          </div>
         </div>
-
-        {/* Transaction History */}
-        {paymentHistory.length > 0 && (
-        <div style={{ marginTop: '1.25rem' }}>
-          <div className="portal-section__header" style={{ marginBottom: '0.85rem' }}>
-            <h3 className="portal-section__title" style={{ fontSize: '1.05rem' }}>Transaction history</h3>
-            <p className="portal-section__hint">Your recent payment records.</p>
-          </div>
-          <div className="portal-card" style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                  <th style={{ padding: '0.6rem 0.75rem' }}>Date</th>
-                  <th style={{ padding: '0.6rem 0.75rem' }}>Description</th>
-                  <th style={{ padding: '0.6rem 0.75rem' }}>Amount</th>
-                  <th style={{ padding: '0.6rem 0.75rem' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paymentHistory.map((txn) => (
-                  <tr key={txn.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.6rem 0.75rem', whiteSpace: 'nowrap' }}>
-                      {new Date(txn.createdAt).toLocaleDateString('en-MY', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </td>
-                    <td style={{ padding: '0.6rem 0.75rem' }}>{txn.description}</td>
-                    <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600 }}>
-                      {txn.currency} {txn.amount.toFixed(2)}
-                    </td>
-                    <td style={{ padding: '0.6rem 0.75rem' }}>
-                      <span className="portal-badge" style={{
-                        background: txn.status === 'COMPLETED' ? '#22c55e' : txn.status === 'PENDING' ? '#f59e0b' : '#ef4444'
-                      }}>
-                        {txn.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        )}
 
         <div style={{ marginTop: '1.25rem' }}>
           <div className="portal-section__header" style={{ marginBottom: '0.85rem' }}>
@@ -1317,6 +1249,106 @@ export default function StudentPortalPage() {
             </div>
           </div>
         ) : null}
+      </section>
+      )}
+
+      {activeSection === 'payments' && (
+      <section className="portal-section">
+        <div className="portal-section__header">
+          <h2 className="portal-section__title">Payments</h2>
+          <p className="portal-section__hint">Make payments and view your transaction history</p>
+        </div>
+
+        {/* Summary cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="portal-card" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: '#fff' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{paymentHistory.length}</div>
+            <div style={{ opacity: 0.9, fontSize: '0.85rem' }}>Total Transactions</div>
+          </div>
+          <div className="portal-card" style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', color: '#fff' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{paymentHistory.filter(t => t.status === 'COMPLETED').length}</div>
+            <div style={{ opacity: 0.9, fontSize: '0.85rem' }}>Completed</div>
+          </div>
+          <div className="portal-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>{paymentHistory.filter(t => t.status === 'PENDING').length}</div>
+            <div style={{ opacity: 0.9, fontSize: '0.85rem' }}>Pending</div>
+          </div>
+          <div className="portal-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: '#fff' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700 }}>
+              MYR {paymentHistory.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
+            </div>
+            <div style={{ opacity: 0.9, fontSize: '0.85rem' }}>Total Paid</div>
+          </div>
+        </div>
+
+        {/* Payment form */}
+        <div className="portal-card" style={{ marginBottom: '1.5rem' }}>
+          <div className="portal-card__title">Make a payment</div>
+          <div className="portal-card__body">
+            <div className="portal-field" style={{ marginBottom: '0.85rem' }}>
+              <label htmlFor="payment-amount">Amount (MYR)</label>
+              <input
+                id="payment-amount"
+                type="number"
+                min="1"
+                step="1"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                placeholder="100"
+              />
+            </div>
+            <button
+              type="button"
+              className="portal-btn portal-btn--primary"
+              onClick={createStripeCheckoutSession}
+              disabled={paymentLoading}
+            >
+              {paymentLoading ? 'Redirecting to Stripe…' : 'Pay with Stripe'}
+            </button>
+            {paymentError ? (
+              <div className="portal-card__meta" style={{ marginTop: '0.75rem', color: 'var(--danger)' }}>
+                {paymentError}
+              </div>
+            ) : null}
+          </div>
+          <div className="portal-card__meta">Secure Malaysian payment via Stripe Checkout.</div>
+        </div>
+
+        {/* Transaction history table */}
+        {paymentHistory.length ? (
+        <div className="portal-card" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                <th style={{ padding: '0.75rem' }}>Date</th>
+                <th style={{ padding: '0.75rem' }}>Description</th>
+                <th style={{ padding: '0.75rem' }}>Amount</th>
+                <th style={{ padding: '0.75rem' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paymentHistory.map((txn) => (
+                <tr key={txn.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '0.75rem', whiteSpace: 'nowrap' }}>
+                    {new Date(txn.createdAt).toLocaleDateString('en-MY', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td style={{ padding: '0.75rem' }}>{txn.description}</td>
+                  <td style={{ padding: '0.75rem', fontWeight: 600 }}>{txn.currency} {txn.amount.toFixed(2)}</td>
+                  <td style={{ padding: '0.75rem' }}>
+                    <span className="portal-badge" style={{
+                      background: txn.status === 'COMPLETED' ? '#22c55e' : txn.status === 'PENDING' ? '#f59e0b' : '#ef4444'
+                    }}>
+                      {txn.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        ) : (
+          <div className="portal-empty">No transactions yet. Make your first payment above.</div>
+        )}
       </section>
       )}
 
