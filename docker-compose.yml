@@ -1,0 +1,89 @@
+services:                          # ✅ removed version: '3.8'
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: zubair22
+      MYSQL_DATABASE: fypDB
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:                   # ✅ added healthcheck so services wait for MySQL
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build: ./backend/auth-service
+    ports:
+      - "8081:8081"                # ✅ fixed — container runs on 8080, host is 8081
+    environment:                   # ✅ added DB connection env vars
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fypDB
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: zubair22
+    depends_on:
+      mysql:
+        condition: service_healthy # ✅ wait for MySQL to be ready
+
+  supervision-service:
+    build: ./backend/supervision-service
+    ports:
+      - "8082:8082"                # ✅ fixed
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fypDB
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: zubair22
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  notification-service:
+    build: ./backend/notification-service
+    ports:
+      - "8083:8083"                # ✅ fixed
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fypDB
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: zubair22
+    depends_on:
+      mysql:
+        condition: service_healthy # ✅ added missing depends_on
+
+  reporting-service:
+    build: ./backend/reporting-service
+    ports:
+      - "8084:8084"                # ✅ fixed
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fypDB
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: zubair22
+    depends_on:
+      mysql:
+        condition: service_healthy # ✅ added missing depends_on
+
+  integration-service:
+    build: ./backend/integration-service
+    ports:
+      - "8085:8085"                # ✅ fixed
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fypDB
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: zubair22
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - auth-service
+      - integration-service
+      - notification-service
+      - reporting-service
+      - supervision-service
+
+volumes:
+  mysql_data:

@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.fyp.auth.security.JwtService;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -28,6 +29,7 @@ import jakarta.validation.constraints.NotBlank;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class AuthController {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
