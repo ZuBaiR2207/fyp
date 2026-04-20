@@ -10,11 +10,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    @Override
-    public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");
-        config.setApplicationDestinationPrefixes("/app");
-    }
+   
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
@@ -22,18 +18,27 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
         registry.addEndpoint("/university")   // ✅ must match nginx proxy path
+                .setAllowedOriginPatterns("*")
                 .setAllowedOrigins(
                     "http://localhost:5173",
                     "https://zubair-fyp-frontend.onrender.com"  // ✅ add this
                 )
+                  // ✅ allow all origins for SockJS fallback
                 .withSockJS();
 
         registry.addEndpoint("/student")      // ✅ must match nginx proxy path
+                .setAllowedOriginPatterns("*")       
                 .setAllowedOrigins(
                     "http://localhost:5173",
                     "https://zubair-fyp-frontend.onrender.com"  // ✅ add this
                 )
                 .withSockJS();
+    }
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry config) {
+        config.enableSimpleBroker("/topic");
+        config.setApplicationDestinationPrefixes("/app");
     }
 }
 
