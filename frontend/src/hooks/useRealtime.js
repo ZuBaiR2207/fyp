@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 
-const WS_URL = import.meta.env.VITE_NOTIFICATION_WS_URL ?? 'http://localhost:8083/ws'
-const NOTIFICATION_URL = import.meta.env.VITE_NOTIFICATION_URL ?? 'http://localhost:8083'
+const WS_URL = import.meta.env.VITE_NOTIFICATION_WS_URL
+const NOTIFICATION_URL = import.meta.env.VITE_NOTIFICATION_URL 
 
 export function useRealtime() {
   const [latestReminders, setLatestReminders] = useState([])

@@ -1,8 +1,8 @@
-export const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? 'http://localhost:8081'
-export const SUPERVISION_URL = import.meta.env.VITE_SUPERVISION_URL ?? 'http://localhost:8082'
-export const NOTIFICATION_URL = import.meta.env.VITE_NOTIFICATION_URL ?? 'http://localhost:8083'
-export const REPORTING_URL = import.meta.env.VITE_REPORTING_URL ?? 'http://localhost:8084'
-export const INTEGRATION_URL = import.meta.env.VITE_INTEGRATION_URL ?? 'http://localhost:8085'
+export const AUTH_URL = import.meta.env.VITE_AUTH_URL
+export const SUPERVISION_URL = import.meta.env.VITE_SUPERVISION_URL
+export const NOTIFICATION_URL = import.meta.env.VITE_NOTIFICATION_URL
+export const REPORTING_URL = import.meta.env.VITE_REPORTING_URL
+export const INTEGRATION_URL = import.meta.env.VITE_INTEGRATION_URL
 
 export function jwtAuthHeader(token) {
   if (!token) return null
