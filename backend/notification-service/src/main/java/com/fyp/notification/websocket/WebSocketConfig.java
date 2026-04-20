@@ -21,6 +21,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
+        registry.addEndpoint("/university")   // ✅ must match nginx proxy path
+                .setAllowedOrigins(
+                    "http://localhost:5173",
+                    "https://zubair-fyp-frontend.onrender.com"  // ✅ add this
+                )
+                .withSockJS();
+
+        registry.addEndpoint("/student")      // ✅ must match nginx proxy path
+                .setAllowedOrigins(
+                    "http://localhost:5173",
+                    "https://zubair-fyp-frontend.onrender.com"  // ✅ add this
+                )
+                .withSockJS();
     }
 }
 
