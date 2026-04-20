@@ -96,7 +96,7 @@ export default function PortalLayout({ brand, title, subtitle, navItems, childre
       />
       <aside className={`portal-sidenav ${mobileOpen ? 'is-open' : ''}`} aria-label="Side navigation">
         <div className="portal-sidenav__brand">
-          <div className="portal-sidenav__logo" aria-hidden />
+          <img src="/fyp_header_updated.svg" alt="Educational Logo" className="portal-sidenav__logo" />
           <div>
             <div className="portal-sidenav__brand-name">{brand}</div>
             <div className="portal-sidenav__title">{title}</div>
@@ -141,6 +141,7 @@ export default function PortalLayout({ brand, title, subtitle, navItems, childre
             <span />
             <span />
           </button>
+          <img src="/fyp_header_updated.svg" alt="Educational Logo" className="portal-header__logo" style={{ height: 40, marginRight: 16 }} />
           <div className="portal-topbar__titles">
             <h1 className="portal-main__heading">{title}</h1>
             {subtitle ? <p className="portal-main__subtitle">{subtitle}</p> : null}
