@@ -1,0 +1,45 @@
+<svg width="200" height="200" viewBox="0 0 200 200" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>FYP Logo</title>
+  <desc>FYP educational institution logo with graduation cap and open book</desc>
+
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#A32D2D"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#E24B4A" stroke-width="1.5"/>
+
+  <!-- Rays -->
+  <line x1="100" y1="22" x2="100" y2="10" stroke="#F09595" stroke-width="2" opacity="0.8"/>
+  <line x1="128" y1="30" x2="135" y2="20" stroke="#F09595" stroke-width="2" opacity="0.8"/>
+  <line x1="72" y1="30" x2="65" y2="20" stroke="#F09595" stroke-width="2" opacity="0.8"/>
+  <line x1="150" y1="52" x2="158" y2="44" stroke="#F09595" stroke-width="2" opacity="0.8"/>
+  <line x1="50" y1="52" x2="42" y2="44" stroke="#F09595" stroke-width="2" opacity="0.8"/>
+  <line x1="168" y1="80" x2="178" y2="76" stroke="#F09595" stroke-width="2" opacity="0.8"/>
+  <line x1="32" y1="80" x2="22" y2="76" stroke="#F09595" stroke-width="2" opacity="0.8"/>
+
+  <!-- Graduation cap -->
+  <polygon points="100,42 140,58 100,74 60,58" fill="#F7C1C1"/>
+  <rect x="93" y="58" width="14" height="18" rx="1" fill="#F09595"/>
+  <!-- Tassel -->
+  <line x1="140" y1="58" x2="140" y2="78" stroke="#F09595" stroke-width="2"/>
+  <circle cx="140" cy="81" r="3.5" fill="#F09595"/>
+
+  <!-- Open Book -->
+  <rect x="62" y="100" width="76" height="48" rx="4" fill="#F7C1C1"/>
+  <!-- Spine -->
+  <line x1="100" y1="100" x2="100" y2="148" stroke="#A32D2D" stroke-width="2.5"/>
+  <!-- Left page lines -->
+  <line x1="69" y1="113" x2="94" y2="113" stroke="#A32D2D" stroke-width="1.5"/>
+  <line x1="69" y1="122" x2="94" y2="122" stroke="#A32D2D" stroke-width="1.5"/>
+  <line x1="69" y1="131" x2="94" y2="131" stroke="#A32D2D" stroke-width="1.5"/>
+  <line x1="69" y1="140" x2="94" y2="140" stroke="#A32D2D" stroke-width="1.5"/>
+  <!-- Right page lines -->
+  <line x1="106" y1="113" x2="131" y2="113" stroke="#A32D2D" stroke-width="1.5"/>
+  <line x1="106" y1="122" x2="131" y2="122" stroke="#A32D2D" stroke-width="1.5"/>
+  <line x1="106" y1="131" x2="131" y2="131" stroke="#A32D2D" stroke-width="1.5"/>
+  <line x1="106" y1="140" x2="131" y2="140" stroke="#A32D2D" stroke-width="1.5"/>
+
+  <!-- FYP text -->
+  <text x="100" y="175" text-anchor="middle" font-family="Georgia, serif" font-size="20" font-weight="700" fill="#FBEAF0" letter-spacing="5">FYP</text>
+
+  <!-- Est line -->
+  <text x="100" y="190" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#F09595" letter-spacing="2">EST. 1998</text>
+</svg>
