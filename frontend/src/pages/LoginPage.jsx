@@ -6,8 +6,8 @@ export default function LoginPage() {
   const nav = useNavigate()
   const { login } = useAuth()
 
-  const [username, setUsername] = useState()
-  const [password, setPassword] = useState()
+  const [username, setUsername] = useState(null)
+  const [password, setPassword] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
