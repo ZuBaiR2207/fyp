@@ -39,12 +39,17 @@ public class JwtService {
 
   public String extractRole(String token) {
     Object roleClaim = getClaims(token).get("role");
-    if (roleClaim instanceof List) {
+    if (roleClaim instanceof List<?> rolesList) {
       // Auth-service stores roles as a List
-      List<?> roles = (List<?>) roleClaim;
-      return roles.isEmpty() ? null : roles.get(0).toString();
-    } else if (roleClaim instanceof String) {
-      return (String) roleClaim;
+      if (!rolesList.isEmpty()) {
+        Object firstRole = rolesList.get(0);
+        if (firstRole != null) {
+          return firstRole.toString();
+        }
+      }
+      return null;
+    } else if (roleClaim instanceof String roleStr) {
+      return roleStr;
     }
     return null;
   }
