@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+
 import com.fyp.supervision.client.NotificationClient;
 import com.fyp.supervision.controller.dto.CreateFeedbackReminderRequest;
 import com.fyp.supervision.controller.dto.StatusEventRequest;
@@ -28,26 +29,31 @@ import com.fyp.supervision.model.FeedbackStatus;
 import com.fyp.supervision.model.Program;
 import com.fyp.supervision.model.SessionStatus;
 import com.fyp.supervision.model.SupervisionSession;
+import com.fyp.supervision.model.User;
 import com.fyp.supervision.repo.ProgramRepository;
 import com.fyp.supervision.repo.SupervisionSessionRepository;
+import com.fyp.supervision.repo.UserRepository;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api")
 public class SupervisionController {
+   private final UserRepository userRepository;
   private final ProgramRepository programRepository;
   private final SupervisionSessionRepository sessionRepository;
   private final NotificationClient notificationClient;
 
-  public SupervisionController(
+   public SupervisionController(
       ProgramRepository programRepository,
       SupervisionSessionRepository sessionRepository,
-      NotificationClient notificationClient
+      NotificationClient notificationClient,
+      UserRepository userRepository
   ) {
     this.programRepository = programRepository;
     this.sessionRepository = sessionRepository;
     this.notificationClient = notificationClient;
+    this.userRepository = userRepository;
   }
 
   @GetMapping("/programs")
@@ -68,6 +74,22 @@ public class SupervisionController {
     program.setName(request.name());
     Program saved = programRepository.save(program);
     return new ProgramResponse(saved.getId(), saved.getName());
+  }
+  
+ 
+  @GetMapping("/student/info")
+  @PreAuthorize("hasRole('STUDENT')")
+  public User getStudentInfo(Authentication authentication) {
+    String username = authentication.getName();
+    return userRepository.findByUsername(username)
+        .orElseThrow(() -> new RuntimeException("User not found: " + username));
+  }
+  @GetMapping("/university/info")
+  @PreAuthorize("hasAnyRole('UNIVERSITY_ADMIN', 'SUPERVISOR', 'ACCREDITATION_BODY')")
+  public User getUniversityAdminInfo(Authentication authentication) {
+    String username = authentication.getName();
+    return userRepository.findByUsername(username)
+        .orElseThrow(() -> new RuntimeException("User not found: " + username));
   }
 
   @PostMapping("/sessions")
@@ -360,5 +382,4 @@ public class SupervisionController {
       int sessionsCompleted,
       int feedbackEntries
     ) {}
-}
-
+  }
