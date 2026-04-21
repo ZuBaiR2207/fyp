@@ -48,8 +48,8 @@
 
 .portal-sidenav__logo {
   width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  height: 50px;
+  border-radius: 5px;
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
   box-shadow: 0 4px 14px rgba(214, 69, 69, 0.35);
   flex-shrink: 0;
