@@ -915,7 +915,7 @@ export default function UniversityPortalPage() {
     <div className="portal-panel">
       <div className="portal-section__header" style={{ marginBottom: '0.85rem' }}>
         <h2 className="portal-section__title" style={{ fontSize: '1.05rem' }}>AI assistant</h2>
-        <p className="portal-section__hint">Instant support for supervision strategy.</p>
+        <p className="portal-section__hint">Instant support for supervision.</p>
       </div>
       <div className="portal-card" style={{ marginBottom: '0.85rem', minHeight: '170px' }}>
         <div className="portal-card__title">Assistant response</div>
@@ -946,7 +946,7 @@ export default function UniversityPortalPage() {
 
   return (
     <PortalLayout
-      brand="FYP Portal"
+      brand="FYP Postgraduate Portal"
       title="University"
       subtitle="Programs, supervision, analytics, and integrations for your institution."
       navItems={NAV}
