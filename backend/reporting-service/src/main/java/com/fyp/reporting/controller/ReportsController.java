@@ -46,23 +46,27 @@ public class ReportsController {
     metrics.put("remindersPending", reminders.remindersPending());
     metrics.put("remindersOverdue", reminders.remindersOverdue());
 
+    // Student status additions
+    metrics.put("studentsEnrolled", supervision.studentsEnrolled());
+    metrics.put("studentsByDepartment", supervision.studentsByDepartment());
+
     List<Map<String, Object>> breakdown = supervision.programBreakdown().stream()
-        .map(program -> {
-          Map<String, Object> entry = new LinkedHashMap<>();
-          entry.put("programId", program.programId());
-          entry.put("programName", program.programName());
-          entry.put("sessionsTotal", program.sessionsTotal());
-          entry.put("sessionsActive", program.sessionsActive());
-          entry.put("sessionsCompleted", program.sessionsCompleted());
-          entry.put("feedbackEntries", program.feedbackEntries());
-          entry.put("completionPercent", percent(program.sessionsCompleted(), program.sessionsTotal()));
-          return entry;
-        })
-        .toList();
+      .map(program -> {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("programId", program.programId());
+        entry.put("programName", program.programName());
+        entry.put("sessionsTotal", program.sessionsTotal());
+        entry.put("sessionsActive", program.sessionsActive());
+        entry.put("sessionsCompleted", program.sessionsCompleted());
+        entry.put("feedbackEntries", program.feedbackEntries());
+        entry.put("completionPercent", percent(program.sessionsCompleted(), program.sessionsTotal()));
+        return entry;
+      })
+      .toList();
 
     String description = programId == null || programId.isBlank()
-        ? "Live analytics summary generated from supervision and notification services."
-        : "Live analytics summary generated for the selected program.";
+      ? "Live analytics summary generated from supervision and notification services."
+      : "Live analytics summary generated for the selected program.";
 
     return new ReportSummary(Instant.now(), programId, description, metrics, breakdown);
   }
@@ -103,7 +107,7 @@ public class ReportsController {
           .retrieve()
           .body(SupervisionSummary.class);
     } catch (Exception ex) {
-      return new SupervisionSummary(0, 0, 0, 0, 0, 0, 0, List.of());
+      return new SupervisionSummary(0, 0, 0, 0, 0, 0, 0, List.of(), 0, null);
     }
   }
 
@@ -148,7 +152,7 @@ public class ReportsController {
       long remindersOverdue
   ) {}
 
-  public record SupervisionSummary(
+    public record SupervisionSummary(
       int sessionsTotal,
       int sessionsPlanned,
       int sessionsActive,
@@ -156,8 +160,10 @@ public class ReportsController {
       int sessionsWithFeedback,
       int overdueFeedback,
       int programsTracked,
-      List<ProgramBreakdown> programBreakdown
-  ) {}
+      List<ProgramBreakdown> programBreakdown,
+      long studentsEnrolled,
+      Map<String, Long> studentsByDepartment
+    ) {}
 
   public record ProgramBreakdown(
       String programId,

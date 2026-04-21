@@ -2903,6 +2903,27 @@ export default function UniversityPortalPage() {
                 <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Overdue Feedback</div>
                 <div style={{ fontSize: '2rem', fontWeight: 700, marginTop: '0.25rem' }}>{reportSummary.metrics?.overdueFeedback ?? 0}</div>
               </div>
+              {/* Student Status Cards */}
+              <div className="portal-card" style={{ background: 'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)', color: 'white', padding: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Students Enrolled</div>
+                <div style={{ fontSize: '2rem', fontWeight: 700, marginTop: '0.25rem' }}>{reportSummary.metrics?.studentsEnrolled ?? 0}</div>
+              </div>
+              <div className="portal-card" style={{ background: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', color: 'black', padding: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Students by Department</div>
+                <div style={{ fontSize: '1rem', marginTop: '0.5rem' }}>
+                  {reportSummary.metrics?.studentsByDepartment && Object.keys(reportSummary.metrics.studentsByDepartment).length > 0 ? (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                      {Object.entries(reportSummary.metrics.studentsByDepartment).map(([dept, count]) => (
+                        <li key={dept} style={{ marginBottom: '0.25rem' }}>
+                          <span style={{ fontWeight: 500 }}>{dept}:</span> <span>{count}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span>No data</span>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Charts Row */}

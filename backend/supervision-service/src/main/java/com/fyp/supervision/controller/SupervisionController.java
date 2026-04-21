@@ -298,6 +298,16 @@ public class SupervisionController {
     .sorted(Comparator.comparing(ProgramBreakdown::programName, String.CASE_INSENSITIVE_ORDER))
     .toList();
 
+  // Student status additions
+  long studentsEnrolled = userRepository.countByRole(com.fyp.supervision.model.UserRole.STUDENT);
+  List<Object[]> studentsByDepartmentRaw = userRepository.countStudentsByCourseName(com.fyp.supervision.model.UserRole.STUDENT);
+  java.util.Map<String, Long> studentsByDepartment = new java.util.HashMap<>();
+  for (Object[] row : studentsByDepartmentRaw) {
+    String courseName = (String) row[0];
+    Long count = (Long) row[1];
+    studentsByDepartment.put(courseName == null ? "Unknown" : courseName, count);
+  }
+
   return new ReportingSummaryResponse(
     total,
     planned,
@@ -306,7 +316,9 @@ public class SupervisionController {
     sessionsWithFeedback,
     overdueFeedback,
     programBreakdown.size(),
-    programBreakdown
+    programBreakdown,
+    studentsEnrolled,
+    studentsByDepartment
   );
   }
 
@@ -371,7 +383,9 @@ public class SupervisionController {
       int sessionsWithFeedback,
       int overdueFeedback,
       int programsTracked,
-      List<ProgramBreakdown> programBreakdown
+      List<ProgramBreakdown> programBreakdown,
+      long studentsEnrolled,
+      java.util.Map<String, Long> studentsByDepartment
     ) {}
 
     public record ProgramBreakdown(
