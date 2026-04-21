@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,8 +29,9 @@ public class ReportsController {
   }
 
   @GetMapping("/summary")
-  public ReportSummary summary(@RequestParam(required = false) String programId) {
-    SupervisionSummary supervision = fetchSupervisionSummary(programId);
+  public ReportSummary summary(@RequestParam(required = false) String programId,
+                              @RequestHeader(value = "Authorization", required = false) String authorization) {
+    SupervisionSummary supervision = fetchSupervisionSummary(programId, authorization);
     ReminderSummary reminders = fetchReminderSummary();
 
     Map<String, Object> metrics = new LinkedHashMap<>();
@@ -98,12 +100,13 @@ public class ReportsController {
     );
   }
 
-  private SupervisionSummary fetchSupervisionSummary(String programId) {
+  private SupervisionSummary fetchSupervisionSummary(String programId, String authorization) {
     try {
       return supervisionClient.get()
           .uri(uriBuilder -> uriBuilder.path("/api/internal/reporting/summary")
               .queryParamIfPresent("programId", Optional.ofNullable(programId).filter(value -> !value.isBlank()))
               .build())
+          .header("Authorization", authorization != null ? authorization : "")
           .retrieve()
           .body(SupervisionSummary.class);
     } catch (Exception ex) {
