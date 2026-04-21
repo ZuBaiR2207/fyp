@@ -73,9 +73,11 @@ public class ReportsController {
     return new ReportSummary(Instant.now(), programId, description, metrics, breakdown);
   }
 
+
   @GetMapping("/accreditation/summary")
-  public AccreditationSummary accreditationSummary(@RequestParam(required = false) String programId) {
-    SupervisionSummary supervision = fetchSupervisionSummary(programId);
+  public AccreditationSummary accreditationSummary(@RequestParam(required = false) String programId,
+                                                  @RequestHeader(value = "Authorization", required = false) String authorization) {
+    SupervisionSummary supervision = fetchSupervisionSummary(programId, authorization);
     ReminderSummary reminders = fetchReminderSummary();
 
     double supervisionCompliance = percent(supervision.sessionsCompleted(), supervision.sessionsTotal());
