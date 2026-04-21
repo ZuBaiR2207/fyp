@@ -678,7 +678,7 @@ export default function StudentPortalPage() {
         <div style={{ marginTop: '1.25rem' }}>
           <div className="portal-section__header" style={{ marginBottom: '0.85rem' }}>
             <h3 className="portal-section__title" style={{ fontSize: '1.05rem' }}>Announcements & ads</h3>
-            <p className="portal-section__hint">Latest updates from university admins.</p>
+            <p className="portal-section__hint">Latest updates</p>
           </div>
           <div className="portal-grid">
             {announcements.length ? (

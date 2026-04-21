@@ -96,7 +96,7 @@ export default function PortalLayout({ brand, title, subtitle, navItems, childre
       />
       <aside className={`portal-sidenav ${mobileOpen ? 'is-open' : ''}`} aria-label="Side navigation">
         <div className="portal-sidenav__brand">
-          <img src="/fyp_header.svg" alt="Educational Logo" className="portal-sidenav__logo" />
+          <img src="/fyp.svg" alt="Educational Logo" className="portal-sidenav__logo" />
           <div>
             <div className="portal-sidenav__brand-name">{brand}</div>
             <div className="portal-sidenav__title">{title}</div>

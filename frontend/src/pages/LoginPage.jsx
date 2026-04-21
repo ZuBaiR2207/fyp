@@ -32,7 +32,7 @@ export default function LoginPage() {
         <div className="login-card__brand">
           <div className="login-card__logo" aria-hidden />
           <div className="login-card__titles">
-            <h1>Final Year Project Portal</h1>
+            <h1>FYP Postgraduate Portal</h1>
             <p>Supervision, reminders, and program insights in one place.</p>
           </div>
         </div>
